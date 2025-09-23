@@ -287,7 +287,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Corrected to reference the existing element 'techDashboard'
                     appContentDiv: document.getElementById('techDashboard'),
                     loadingAuthMessageDiv: document.getElementById('loading-auth-message'),
+                    techDashboard: document.getElementById('techDashboard'),
+                    tlDashboard: document.getElementById('tlDashboard'),
+                    userManagementDashboard: document.getElementById('userManagementDashboard'),
                 };
+            },
+            hideAllDashboards() {
+                if (this.elements.techDashboard) this.elements.techDashboard.style.display = 'none';
+                if (this.elements.tlDashboard) this.elements.tlDashboard.style.display = 'none';
+                if (this.elements.userManagementDashboard) this.elements.userManagementDashboard.style.display = 'none';
             },
             attachEventListeners() {
                 const self = this;
@@ -295,15 +303,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (element) element.onclick = handler;
                 };
                 // Corrected reference to a non-existent button. This is now tied to a button that does exist.
-                attachClick(self.elements.openAddNewProjectBtn, () => {
-                    const pin = prompt("Enter PIN to add new tracker:");
-                    if (pin === self.config.pins.TL_DASHBOARD_PIN) self.elements.projectFormModal.style.display = 'block';
-                    else if (pin) alert("Incorrect PIN.");
+                attachClick(self.elements.openTechDashboardBtn, () => {
+                    self.methods.hideAllDashboards.call(self);
+                    self.elements.techDashboard.style.display = 'flex';
                 });
                 attachClick(self.elements.openTlDashboardBtn, () => {
                     const pin = prompt("Enter PIN to access Project Settings:");
                     if (pin === self.config.pins.TL_DASHBOARD_PIN) {
-                        // Corrected element name to match ID in HTML
+                        self.methods.hideAllDashboards.call(self);
                         document.getElementById('tlDashboard').style.display = 'flex';
                         self.methods.renderTLDashboard.call(self);
                     } else if (pin) alert("Incorrect PIN.");
@@ -311,7 +318,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 attachClick(self.elements.openSettingsBtn, () => {
                     const pin = prompt("Enter PIN to access User Settings:");
                     if (pin === self.config.pins.TL_DASHBOARD_PIN) {
-                        // Corrected element name to match ID in HTML
+                        self.methods.hideAllDashboards.call(self);
                         document.getElementById('userManagementDashboard').style.display = 'flex';
                         self.methods.renderUserManagement.call(self);
                         self.methods.exitEditMode.call(self);
@@ -516,41 +523,42 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 });
             },
-           async handleAuthorizedUser(user) {
-    this.elements.body.classList.remove('login-view-active');
-    this.elements.authWrapper.style.display = 'none';
-    if (this.elements.mainContainer) {
-        this.elements.mainContainer.style.display = 'flex';
-    }
-    this.elements.userNameP.textContent = user.displayName || "N/A";
-    this.elements.userEmailP.textContent = user.email || "N/A";
-    if (this.elements.userPhotoImg) this.elements.userPhotoImg.src = user.photoURL || 'default-user.png';
-    if (this.elements.userInfoDisplayDiv) {
-        this.elements.userInfoDisplayDiv.style.display = 'flex';
-    }
-    if (this.elements.clearDataBtn) this.elements.clearDataBtn.style.display = 'none';
-    if (this.elements.appContentDiv) {
-        this.elements.appContentDiv.style.display = 'flex';
-    }
-    this.elements.loadingAuthMessageDiv.style.display = 'none';
-    if (this.elements.openSettingsBtn) this.elements.openSettingsBtn.style.display = 'block';
-    if (!this.state.isAppInitialized) {
-        this.methods.listenForAppConfigChanges.call(this);
-        this.methods.initializeFirebaseAndLoadData.call(this);
-        this.state.isAppInitialized = true;
-        this.methods.listenForNotifications.call(this);
-        this.methods.checkForNewDisputes.call(this);
-    }
-},
+            async handleAuthorizedUser(user) {
+                if (this.elements.body) this.elements.body.classList.remove('login-view-active');
+                if (this.elements.authWrapper) this.elements.authWrapper.style.display = 'none';
+                if (this.elements.mainContainer) this.elements.mainContainer.style.display = 'flex';
+                if (this.elements.userNameP) this.elements.userNameP.textContent = user.displayName || "N/A";
+                if (this.elements.userEmailP) this.elements.userEmailP.textContent = user.email || "N/A";
+                if (this.elements.userPhotoImg) this.elements.userPhotoImg.src = user.photoURL || 'default-user.png';
+                if (this.elements.userInfoDisplayDiv) {
+                    this.elements.userInfoDisplayDiv.style.display = 'flex';
+                }
+                if (this.elements.clearDataBtn) this.elements.clearDataBtn.style.display = 'none';
+                // Corrected to reference the existing element 'techDashboard'
+                if (this.elements.appContentDiv) {
+                    this.elements.appContentDiv.style.display = 'flex';
+                }
+                if (this.elements.loadingAuthMessageDiv) this.elements.loadingAuthMessageDiv.style.display = 'none';
+                if (this.elements.openSettingsBtn) this.elements.openSettingsBtn.style.display = 'block';
+                if (!this.state.isAppInitialized) {
+                    this.methods.listenForAppConfigChanges.call(this);
+                    this.methods.initializeFirebaseAndLoadData.call(this);
+                    this.state.isAppInitialized = true;
+                    this.methods.listenForNotifications.call(this);
+                    this.methods.checkForNewDisputes.call(this);
+                }
+            },
             handleSignedOutUser() {
-                this.elements.body.classList.add('login-view-active');
-                this.elements.authWrapper.style.display = 'block';
-                this.elements.mainContainer.style.display = 'none';
-                this.elements.userInfoDisplayDiv.style.display = 'none';
+                if (this.elements.body) this.elements.body.classList.add('login-view-active');
+                if (this.elements.authWrapper) this.elements.authWrapper.style.display = 'block';
+                if (this.elements.mainContainer) this.elements.mainContainer.style.display = 'none';
+                if (this.elements.userInfoDisplayDiv) this.elements.userInfoDisplayDiv.style.display = 'none';
                 if (this.elements.clearDataBtn) this.elements.clearDataBtn.style.display = 'block';
-                this.elements.appContentDiv.style.display = 'none';
-                this.elements.loadingAuthMessageDiv.innerHTML = "<p>Please sign in to access the Project Tracker.</p>";
-                this.elements.loadingAuthMessageDiv.style.display = 'block';
+                if (this.elements.appContentDiv) this.elements.appContentDiv.style.display = 'none';
+                if (this.elements.loadingAuthMessageDiv) {
+                    this.elements.loadingAuthMessageDiv.innerHTML = "<p>Please sign in to access the Project Tracker.</p>";
+                    this.elements.loadingAuthMessageDiv.style.display = 'block';
+                }
                 if (this.elements.openSettingsBtn) this.elements.openSettingsBtn.style.display = 'none';
                 this.state.currentUserTechId = null;
                 if (this.projectsListenerUnsubscribe) this.projectsListenerUnsubscribe();
@@ -2073,6 +2081,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         const techInfoSection = document.createElement('div');
                         techInfoSection.className = 'tech-info-section';
                         let techInfoHtml = '<h3 class="tech-info-header">Techs with No Time Logged</h3><ul class="tech-info-list">';
+                        techInfoHtml += `<p style="font-size: 0.9em; color: #666; margin-top: -8px; margin-bottom: 20px;">The following users have been assigned to tasks, but no time has been logged under their name:</p>`;
                         techsWithNoTime.forEach(tech => {
                             techInfoHtml += `<li>${tech}</li>`;
                         });
@@ -2664,18 +2673,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 this.elements.prevDisputePageBtn.disabled = currentPage <= 1;
                 this.elements.nextDisputePageBtn.disabled = currentPage >= totalPages;
-            },
-            handleNextDisputePage() {
-                if (this.state.disputePagination.currentPage < this.state.disputePagination.totalPages) {
-                    this.state.disputePagination.currentPage++;
-                    this.methods.renderDisputes.call(this);
-                }
-            },
-            handlePrevDisputePage() {
-                if (this.state.disputePagination.currentPage > 1) {
-                    this.state.disputePagination.currentPage--;
-                    this.methods.renderDisputes.call(this);
-                }
             },
             handleDisputeTableActions(event) {
                 const button = event.target;
