@@ -23,13 +23,14 @@ document.addEventListener('DOMContentLoaded', () => {
         // --- 1. CONFIGURATION AND CONSTANTS ---
         config: {
             firebase: {
-                apiKey: "AIzaSyC2WPqGuXr9huIXblMWc6JQwO3p_xJHkZY",
-                authDomain: "team114-ebca3.firebaseapp.com",
-                projectId: "team114-ebca3",
-                storageBucket: "team114-ebca3.firebasestorage.app",
-                messagingSenderId: "24454468220",
-                appId: "1:24454468220:web:d9f7748975bbf32974aff9",
-                measurementId: "G-0XP2VX9K9F"
+                const firebaseConfig = {
+  apiKey: "AIzaSyBg4QojI8nzPZpsctV41nNrIi6dPPrXgyY",
+  authDomain: "worktime-tracker-1de98.firebaseapp.com",
+  projectId: "worktime-tracker-1de98",
+  storageBucket: "worktime-tracker-1de98.firebasestorage.app",
+  messagingSenderId: "145326760645",
+  appId: "1:145326760645:web:e7d0a47823941c4fea46ac"
+};
 
             },
             pins: {
