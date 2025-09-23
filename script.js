@@ -213,6 +213,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     disputeDetailsContent: document.getElementById('disputeDetailsContent'),
                     closeDisputeDetailsBtn: document.getElementById('closeDisputeDetailsBtn'),
                     disputeNotificationBadge: document.getElementById('disputeNotificationBadge'),
+                    
+                    // New DOM references for the selection modal
+                    exportSelectedCsvBtn: document.getElementById('exportSelectedCsvBtn'),
+                    selectProjectsModal: document.getElementById('selectProjectsModal'),
+                    closeSelectProjectsBtn: document.getElementById('closeSelectProjectsBtn'),
+                    projectSelectionList: document.getElementById('projectSelectionList'),
+                    exportSelectedProjectsBtn: document.getElementById('exportSelectedProjectsBtn'),
                 };
             },
             injectTechIdHintStyles() {
@@ -315,6 +322,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     localStorage.setItem('lastDisputeViewTimestamp', self.state.lastDisputeViewTimestamp);
                 });
                 attachClick(self.elements.exportCsvBtn, self.methods.handleExportCsv.bind(self));
+                // New listeners for the selection modal
+                attachClick(self.elements.exportSelectedCsvBtn, self.methods.openProjectSelectionModal.bind(self));
+                attachClick(self.elements.closeSelectProjectsBtn, () => self.elements.selectProjectsModal.style.display = 'none');
+                attachClick(self.elements.exportSelectedProjectsBtn, self.methods.handleExportFromModal.bind(self));
+
                 attachClick(self.elements.openImportCsvBtn, () => {
                     const pin = prompt("Enter PIN to import CSV:");
                     if (pin === self.config.pins.TL_DASHBOARD_PIN) {
@@ -441,6 +453,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (event.target == self.elements.importCsvModal) self.elements.importCsvModal.style.display = 'none';
                     if (event.target == self.elements.disputeModal) self.elements.disputeModal.style.display = 'none';
                     if (event.target == self.elements.disputeDetailsModal) self.elements.disputeDetailsModal.style.display = 'none';
+                    if (event.target == self.elements.selectProjectsModal) self.elements.selectProjectsModal.style.display = 'none';
                 };
             },
             handleNextPage() {
@@ -2731,6 +2744,140 @@ Status: ${dispute.status}
                     } catch (error) {
                         alert("Failed to delete dispute.");
                     }
+                }
+            },
+            async openProjectSelectionModal() {
+                this.methods.showLoading.call(this, "Fetching projects...");
+                try {
+                    const snapshot = await this.db.collection("projects").get();
+                    const projectNames = new Set();
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        if (data.baseProjectName) {
+                            projectNames.add(data.baseProjectName);
+                        }
+                    });
+                    
+                    const sortedNames = Array.from(projectNames).sort();
+                    this.elements.projectSelectionList.innerHTML = '';
+                    if (sortedNames.length === 0) {
+                        this.elements.projectSelectionList.innerHTML = '<p style="text-align: center;">No projects available.</p>';
+                        this.elements.exportSelectedProjectsBtn.disabled = true;
+                    } else {
+                        this.elements.exportSelectedProjectsBtn.disabled = false;
+                        sortedNames.forEach(name => {
+                            const li = document.createElement('li');
+                            li.style.marginBottom = '8px';
+                            li.style.borderBottom = '1px dashed #eee';
+                            li.style.paddingBottom = '8px';
+                            li.innerHTML = `
+                                <label style="display: flex; align-items: center; cursor: pointer;">
+                                    <input type="checkbox" name="projectToExport" value="${name}" style="margin-right: 10px;">
+                                    <span>${name}</span>
+                                </label>
+                            `;
+                            this.elements.projectSelectionList.appendChild(li);
+                        });
+                    }
+                    this.elements.selectProjectsModal.style.display = 'block';
+                } catch (error) {
+                    alert("Error loading projects for selection: " + error.message);
+                } finally {
+                    this.methods.hideLoading.call(this);
+                }
+            },
+            
+            async handleExportFromModal() {
+                const selectedCheckboxes = document.querySelectorAll('#projectSelectionList input[name="projectToExport"]:checked');
+                if (selectedCheckboxes.length === 0) {
+                    alert("Please select at least one project to export.");
+                    return;
+                }
+            
+                const selectedProjectNames = Array.from(selectedCheckboxes).map(cb => cb.value);
+            
+                this.methods.showLoading.call(this, "Generating CSV for selected projects...");
+            
+                try {
+                    const projectsQuery = this.db.collection("projects").where("baseProjectName", "in", selectedProjectNames);
+                    const allProjectsSnapshot = await projectsQuery.get();
+                    let projectsData = [];
+                    allProjectsSnapshot.forEach(doc => {
+                        if (doc.exists) projectsData.push(doc.data());
+                    });
+            
+                    if (projectsData.length === 0) {
+                        alert("No project data found for the selected projects.");
+                        return;
+                    }
+            
+                    const headers = ["Fix Cat", "Project Name", "Area/Task", "GSD", "Assigned To", "Status",
+                        "Day 1 Start", "Day 1 Finish", "Day 1 Break",
+                        "Day 2 Start", "Day 2 Finish", "Day 2 Break",
+                        "Day 3 Start", "Day 3 Finish", "Day 3 Break",
+                        "Day 4 Start", "Day 4 Finish", "Day 4 Break",
+                        "Day 5 Start", "Day 5 Finish", "Day 5 Break",
+                        "Day 6 Start", "Day 6 Finish", "Day 6 Break",
+                        "Total (min)"];
+            
+                    const rows = [headers.join(',')];
+                    const formatTime = (ts) => ts?.toDate ? `"${ts.toDate().toTimeString().slice(0, 5)}"` : "";
+            
+                    projectsData.forEach(project => {
+                        const totalDurationMs = (project.durationDay1Ms || 0) + (project.durationDay2Ms || 0) + (project.durationDay3Ms || 0) +
+                            (project.durationDay4Ms || 0) + (project.durationDay5Ms || 0) + (project.durationDay6Ms || 0);
+                        const totalBreakMs = ((project.breakDurationMinutesDay1 || 0) + (project.breakDurationMinutesDay2 || 0) + (project.breakDurationMinutesDay3 || 0) +
+                            (project.breakDurationMinutesDay4 || 0) + (project.breakDurationMinutesDay5 || 0) + (project.breakDurationMinutesDay6 || 0)) * 60000;
+                        const additionalMs = (project.additionalMinutesManual || 0) * 60000;
+                        const finalAdjustedDurationMs = Math.max(0, totalDurationMs - totalBreakMs) + additionalMs;
+                        const totalMinutes = this.methods.formatMillisToMinutes.call(this, finalAdjustedDurationMs);
+                        const status = (project.status || "").replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').trim();
+            
+                        const rowData = [
+                            project.fixCategory || "",
+                            project.baseProjectName || "",
+                            project.areaTask || "",
+                            project.gsd || "",
+                            project.assignedTo || "",
+                            status,
+                            formatTime(project.startTimeDay1),
+                            formatTime(project.finishTimeDay1),
+                            project.breakDurationMinutesDay1 || "0",
+                            formatTime(project.startTimeDay2),
+                            formatTime(project.finishTimeDay2),
+                            project.breakDurationMinutesDay2 || "0",
+                            formatTime(project.startTimeDay3),
+                            formatTime(project.finishTimeDay3),
+                            project.breakDurationMinutesDay3 || "0",
+                            formatTime(project.startTimeDay4),
+                            formatTime(project.finishTimeDay4),
+                            project.breakDurationMinutesDay4 || "0",
+                            formatTime(project.startTimeDay5),
+                            formatTime(project.finishTimeDay5),
+                            project.breakDurationMinutesDay5 || "0",
+                            formatTime(project.startTimeDay6),
+                            formatTime(project.finishTimeDay6),
+                            project.breakDurationMinutesDay6 || "0",
+                            totalMinutes
+                        ];
+                        rows.push(rowData.join(','));
+                    });
+            
+                    const csvContent = "data:text/csv;charset=utf-8," + rows.join('\n');
+                    const encodedUri = encodeURI(csvContent);
+                    const link = document.createElement("a");
+                    link.setAttribute("href", encodedUri);
+                    link.setAttribute("download", `ProjectTracker_SelectedData_${new Date().toISOString().slice(0, 10)}.csv`);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    alert("Selected project data exported successfully!");
+                    this.elements.selectProjectsModal.style.display = 'none';
+            
+                } catch (error) {
+                    alert("Failed to export data: " + error.message);
+                } finally {
+                    this.methods.hideLoading.call(this);
                 }
             },
         }
