@@ -492,6 +492,9 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         },
         async handleAuthorizedUser(user) {
+            if (!this.state.isAppInitialized) {
+        this.methods.listenForAppConfigChanges.call(this); // <-- PROBLEM LINE
+        this.methods.initializeFirebaseAndLoadData.call(this);
             if (this.elements.body) this.elements.body.classList.remove('login-view-active');
             if (this.elements.authWrapper) this.elements.authWrapper.style.display = 'none';
             if (this.elements.mainContainer) this.elements.mainContainer.style.display = 'flex';
