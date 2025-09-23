@@ -267,24 +267,45 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             },
             setupAuthRelatedDOMReferences() {
-        this.elements = {
-            ...this.elements,
-            body: document.body,
-            authWrapper: document.getElementById('auth-wrapper'),
-            // Corrected selector for the main dashboard wrapper
-            mainContainer: document.querySelector('.dashboard-wrapper'),
-            signInBtn: document.getElementById('signInBtn'),
-            signOutBtn: document.getElementById('signOutBtn'),
-            clearDataBtn: document.getElementById('clearDataBtn'),
-            userInfoDisplayDiv: document.getElementById('user-info-display'),
-            userNameP: document.getElementById('userName'),
-            userEmailP: document.getElementById('userEmail'),
-            userPhotoImg: document.getElementById('userPhoto'),
-            // Corrected to reference an existing element or you can set this to null
-            appContentDiv: document.querySelector('#techDashboard'),
-            loadingAuthMessageDiv: document.getElementById('loading-auth-message'),
-        };
-    },
+    this.elements = {
+        ...this.elements,
+        body: document.body,
+        authWrapper: document.getElementById('auth-wrapper'),
+        mainContainer: document.querySelector('.dashboard-wrapper'),
+        signInBtn: document.getElementById('signInBtn'),
+        signOutBtn: document.getElementById('signOutBtn'),
+        clearDataBtn: document.getElementById('clearDataBtn'),
+        // Corrected selector to target the existing user profile div in the main header.
+        userInfoDisplayDiv: document.querySelector('.dashboard-header .user-profile'),
+        userNameP: document.getElementById('userName'),
+        userEmailP: document.getElementById('userEmail'),
+        userPhotoImg: document.getElementById('userPhoto'),
+        appContentDiv: document.querySelector('#techDashboard'),
+        loadingAuthMessageDiv: document.getElementById('loading-auth-message'),
+    };
+},
+async handleAuthorizedUser(user) {
+    this.elements.body.classList.remove('login-view-active');
+    this.elements.authWrapper.style.display = 'none';
+    this.elements.mainContainer.style.display = 'flex';
+    this.elements.userNameP.textContent = user.displayName || "N/A";
+    this.elements.userEmailP.textContent = user.email || "N/A";
+    if (this.elements.userPhotoImg) this.elements.userPhotoImg.src = user.photoURL || 'default-user.png';
+    // This is the line you need to fix. The new selector will find the element.
+    if (this.elements.userInfoDisplayDiv) {
+        this.elements.userInfoDisplayDiv.style.display = 'flex';
+    }
+    if (this.elements.clearDataBtn) this.elements.clearDataBtn.style.display = 'none';
+    this.elements.loadingAuthMessageDiv.style.display = 'none';
+    if (this.elements.openSettingsBtn) this.elements.openSettingsBtn.style.display = 'block';
+    if (!this.state.isAppInitialized) {
+        this.methods.listenForAppConfigChanges.call(this);
+        this.methods.initializeFirebaseAndLoadData.call(this);
+        this.state.isAppInitialized = true;
+        this.methods.listenForNotifications.call(this);
+        this.methods.checkForNewDisputes.call(this);
+    }
+},
             attachEventListeners() {
                 const self = this;
                 const attachClick = (element, handler) => {
