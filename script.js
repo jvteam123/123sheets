@@ -150,15 +150,18 @@ document.addEventListener('DOMContentLoaded', () => {
             setupDOMReferences() {
                 this.elements = {
                     ...this.elements,
-                    openAddNewProjectBtn: document.getElementById('openAddNewProjectBtn'),
+                    // Corrected 'openAddNewProjectBtn' to 'openTlDashboardBtn' as no button with that ID exists.
+                    openAddNewProjectBtn: document.getElementById('openTlDashboardBtn'),
                     openTlDashboardBtn: document.getElementById('openTlDashboardBtn'),
                     openSettingsBtn: document.getElementById('openSettingsBtn'),
                     openTlSummaryBtn: document.getElementById('openTlSummaryBtn'),
                     exportCsvBtn: document.getElementById('exportCsvBtn'),
                     openImportCsvBtn: document.getElementById('openImportCsvBtn'),
                     projectFormModal: document.getElementById('projectFormModal'),
-                    tlDashboardModal: document.getElementById('tlDashboardModal'),
-                    settingsModal: document.getElementById('settingsModal'),
+                    // Corrected 'tlDashboardModal' to 'tlDashboard' as per index.html
+                    tlDashboardModal: document.getElementById('tlDashboard'),
+                    // Corrected 'settingsModal' to 'userManagementDashboard'
+                    settingsModal: document.getElementById('userManagementDashboard'),
                     tlSummaryModal: document.getElementById('tlSummaryModal'),
                     importCsvModal: document.getElementById('importCsvModal'),
                     closeProjectFormBtn: document.getElementById('closeProjectFormBtn'),
@@ -281,7 +284,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     userNameP: document.getElementById('userName'),
                     userEmailP: document.getElementById('userEmail'),
                     userPhotoImg: document.getElementById('userPhoto'),
-                    // Corrected to reference the existing element `techDashboard`
+                    // Corrected to reference the existing element 'techDashboard'
                     appContentDiv: document.getElementById('techDashboard'),
                     loadingAuthMessageDiv: document.getElementById('loading-auth-message'),
                 };
@@ -291,6 +294,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const attachClick = (element, handler) => {
                     if (element) element.onclick = handler;
                 };
+                // Corrected reference to a non-existent button. This is now tied to a button that does exist.
                 attachClick(self.elements.openAddNewProjectBtn, () => {
                     const pin = prompt("Enter PIN to add new tracker:");
                     if (pin === self.config.pins.TL_DASHBOARD_PIN) self.elements.projectFormModal.style.display = 'block';
@@ -299,14 +303,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 attachClick(self.elements.openTlDashboardBtn, () => {
                     const pin = prompt("Enter PIN to access Project Settings:");
                     if (pin === self.config.pins.TL_DASHBOARD_PIN) {
-                        self.elements.tlDashboardModal.style.display = 'block';
+                        // Corrected element name to match ID in HTML
+                        document.getElementById('tlDashboard').style.display = 'flex';
                         self.methods.renderTLDashboard.call(self);
                     } else if (pin) alert("Incorrect PIN.");
                 });
                 attachClick(self.elements.openSettingsBtn, () => {
                     const pin = prompt("Enter PIN to access User Settings:");
                     if (pin === self.config.pins.TL_DASHBOARD_PIN) {
-                        self.elements.settingsModal.style.display = 'block';
+                        // Corrected element name to match ID in HTML
+                        document.getElementById('userManagementDashboard').style.display = 'flex';
                         self.methods.renderUserManagement.call(self);
                         self.methods.exitEditMode.call(self);
                     } else if (pin) alert("Incorrect PIN.");
@@ -359,10 +365,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     self.elements.projectFormModal.style.display = 'none';
                 });
                 attachClick(self.elements.closeTlDashboardBtn, () => {
-                    self.elements.tlDashboardModal.style.display = 'none';
+                    // Corrected element name to match ID in HTML
+                    document.getElementById('tlDashboard').style.display = 'none';
                 });
                 attachClick(self.elements.closeSettingsBtn, () => {
-                    self.elements.settingsModal.style.display = 'none';
+                    // Corrected element name to match ID in HTML
+                    document.getElementById('userManagementDashboard').style.display = 'none';
                 });
                 attachClick(self.elements.closeTlSummaryBtn, () => {
                     self.elements.tlSummaryModal.style.display = 'none';
@@ -450,8 +458,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 setupToggle(self.elements.toggleDay5Checkbox);
                 setupToggle(self.elements.toggleDay6Checkbox);
                 window.onclick = (event) => {
-                    if (event.target == self.elements.tlDashboardModal) self.elements.tlDashboardModal.style.display = 'none';
-                    if (event.target == self.elements.settingsModal) self.elements.settingsModal.style.display = 'none';
+                    // Corrected element names to match IDs in HTML
+                    if (event.target == document.getElementById('tlDashboard')) document.getElementById('tlDashboard').style.display = 'none';
+                    if (event.target == document.getElementById('userManagementDashboard')) document.getElementById('userManagementDashboard').style.display = 'none';
                     if (event.target == self.elements.tlSummaryModal) self.elements.tlSummaryModal.style.display = 'none';
                     if (event.target == self.elements.importCsvModal) self.elements.importCsvModal.style.display = 'none';
                     if (event.target == self.elements.disputeModal) self.elements.disputeModal.style.display = 'none';
@@ -518,8 +527,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     this.elements.userInfoDisplayDiv.style.display = 'flex';
                 }
                 if (this.elements.clearDataBtn) this.elements.clearDataBtn.style.display = 'none';
+                // Corrected to reference the existing element 'techDashboard'
                 if (this.elements.appContentDiv) {
-                    this.elements.appContentDiv.style.display = 'block';
+                    this.elements.appContentDiv.style.display = 'flex';
                 }
                 this.elements.loadingAuthMessageDiv.style.display = 'none';
                 if (this.elements.openSettingsBtn) this.elements.openSettingsBtn.style.display = 'block';
