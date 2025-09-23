@@ -213,7 +213,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     disputeDetailsContent: document.getElementById('disputeDetailsContent'),
                     closeDisputeDetailsBtn: document.getElementById('closeDisputeDetailsBtn'),
                     disputeNotificationBadge: document.getElementById('disputeNotificationBadge'),
-                    
+
                     // New DOM references for the selection modal
                     exportSelectedCsvBtn: document.getElementById('exportSelectedCsvBtn'),
                     selectProjectsModal: document.getElementById('selectProjectsModal'),
@@ -267,45 +267,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             },
             setupAuthRelatedDOMReferences() {
-    this.elements = {
-        ...this.elements,
-        body: document.body,
-        authWrapper: document.getElementById('auth-wrapper'),
-        mainContainer: document.querySelector('.dashboard-wrapper'),
-        signInBtn: document.getElementById('signInBtn'),
-        signOutBtn: document.getElementById('signOutBtn'),
-        clearDataBtn: document.getElementById('clearDataBtn'),
-        // Corrected selector to target the existing user profile div in the main header.
-        userInfoDisplayDiv: document.querySelector('.dashboard-header .user-profile'),
-        userNameP: document.getElementById('userName'),
-        userEmailP: document.getElementById('userEmail'),
-        userPhotoImg: document.getElementById('userPhoto'),
-        appContentDiv: document.querySelector('#techDashboard'),
-        loadingAuthMessageDiv: document.getElementById('loading-auth-message'),
-    };
-},
-async handleAuthorizedUser(user) {
-    this.elements.body.classList.remove('login-view-active');
-    this.elements.authWrapper.style.display = 'none';
-    this.elements.mainContainer.style.display = 'flex';
-    this.elements.userNameP.textContent = user.displayName || "N/A";
-    this.elements.userEmailP.textContent = user.email || "N/A";
-    if (this.elements.userPhotoImg) this.elements.userPhotoImg.src = user.photoURL || 'default-user.png';
-    // This is the line you need to fix. The new selector will find the element.
-    if (this.elements.userInfoDisplayDiv) {
-        this.elements.userInfoDisplayDiv.style.display = 'flex';
-    }
-    if (this.elements.clearDataBtn) this.elements.clearDataBtn.style.display = 'none';
-    this.elements.loadingAuthMessageDiv.style.display = 'none';
-    if (this.elements.openSettingsBtn) this.elements.openSettingsBtn.style.display = 'block';
-    if (!this.state.isAppInitialized) {
-        this.methods.listenForAppConfigChanges.call(this);
-        this.methods.initializeFirebaseAndLoadData.call(this);
-        this.state.isAppInitialized = true;
-        this.methods.listenForNotifications.call(this);
-        this.methods.checkForNewDisputes.call(this);
-    }
-},
+                this.elements = {
+                    ...this.elements,
+                    body: document.body,
+                    authWrapper: document.getElementById('auth-wrapper'),
+                    // Corrected selector for the main dashboard wrapper from `.container` to `.dashboard-wrapper`
+                    mainContainer: document.querySelector('.dashboard-wrapper'),
+                    signInBtn: document.getElementById('signInBtn'),
+                    signOutBtn: document.getElementById('signOutBtn'),
+                    clearDataBtn: document.getElementById('clearDataBtn'),
+                    // Corrected selector to target the existing user profile div in the main header
+                    userInfoDisplayDiv: document.querySelector('.dashboard-header .user-profile'),
+                    userNameP: document.getElementById('userName'),
+                    userEmailP: document.getElementById('userEmail'),
+                    userPhotoImg: document.getElementById('userPhoto'),
+                    // Corrected to reference the existing element `techDashboard`
+                    appContentDiv: document.getElementById('techDashboard'),
+                    loadingAuthMessageDiv: document.getElementById('loading-auth-message'),
+                };
+            },
             attachEventListeners() {
                 const self = this;
                 const attachClick = (element, handler) => {
@@ -349,7 +329,7 @@ async handleAuthorizedUser(user) {
                 attachClick(self.elements.exportSelectedCsvBtn, self.methods.openProjectSelectionModal.bind(self));
                 attachClick(self.elements.closeSelectProjectsBtn, () => self.elements.selectProjectsModal.style.display = 'none');
                 attachClick(self.elements.exportSelectedProjectsBtn, self.methods.handleExportFromModal.bind(self));
-
+                
                 attachClick(self.elements.openImportCsvBtn, () => {
                     const pin = prompt("Enter PIN to import CSV:");
                     if (pin === self.config.pins.TL_DASHBOARD_PIN) {
@@ -528,26 +508,29 @@ async handleAuthorizedUser(user) {
                 });
             },
             async handleAuthorizedUser(user) {
-        this.elements.body.classList.remove('login-view-active');
-        this.elements.authWrapper.style.display = 'none';
-        // Your HTML main content wrapper is named 'dashboard-wrapper', which has its display property set to 'flex' by default
-        this.elements.mainContainer.style.display = 'flex';
-        this.elements.userNameP.textContent = user.displayName || "N/A";
-        this.elements.userEmailP.textContent = user.email || "N/A";
-        if (this.elements.userPhotoImg) this.elements.userPhotoImg.src = user.photoURL || 'default-user.png';
-        this.elements.userInfoDisplayDiv.style.display = 'flex';
-        if (this.elements.clearDataBtn) this.elements.clearDataBtn.style.display = 'none';
-        // This line is causing the error because it's trying to style a non-existent element. Remove it.
-        this.elements.loadingAuthMessageDiv.style.display = 'none';
-        if (this.elements.openSettingsBtn) this.elements.openSettingsBtn.style.display = 'block';
-        if (!this.state.isAppInitialized) {
-            this.methods.listenForAppConfigChanges.call(this);
-            this.methods.initializeFirebaseAndLoadData.call(this);
-            this.state.isAppInitialized = true;
-            this.methods.listenForNotifications.call(this);
-            this.methods.checkForNewDisputes.call(this);
-        }
-    },
+                this.elements.body.classList.remove('login-view-active');
+                this.elements.authWrapper.style.display = 'none';
+                this.elements.mainContainer.style.display = 'flex';
+                this.elements.userNameP.textContent = user.displayName || "N/A";
+                this.elements.userEmailP.textContent = user.email || "N/A";
+                if (this.elements.userPhotoImg) this.elements.userPhotoImg.src = user.photoURL || 'default-user.png';
+                if (this.elements.userInfoDisplayDiv) {
+                    this.elements.userInfoDisplayDiv.style.display = 'flex';
+                }
+                if (this.elements.clearDataBtn) this.elements.clearDataBtn.style.display = 'none';
+                if (this.elements.appContentDiv) {
+                    this.elements.appContentDiv.style.display = 'block';
+                }
+                this.elements.loadingAuthMessageDiv.style.display = 'none';
+                if (this.elements.openSettingsBtn) this.elements.openSettingsBtn.style.display = 'block';
+                if (!this.state.isAppInitialized) {
+                    this.methods.listenForAppConfigChanges.call(this);
+                    this.methods.initializeFirebaseAndLoadData.call(this);
+                    this.state.isAppInitialized = true;
+                    this.methods.listenForNotifications.call(this);
+                    this.methods.checkForNewDisputes.call(this);
+                }
+            },
             handleSignedOutUser() {
                 this.elements.body.classList.add('login-view-active');
                 this.elements.authWrapper.style.display = 'block';
@@ -1604,7 +1587,7 @@ async handleAuthorizedUser(user) {
                     } else {
                         lastTask = allTasks[0];
                     }
-                    const numToAdd = parseInt(prompt(`Adding extra areas to "${baseProjectName}" - ${latestFixCategory}.\nLast known area number is ${lastAreaNumber}.\n\nHow many extra areas do you want to add?`), 10);
+                    const numToAdd = parseInt(prompt(`Adding extra areas to "${baseProjectName}" - ${latestFixCategory}.\\nLast known area number is ${lastAreaNumber}.\\n\\nHow many extra areas do you want to add?`), 10);
                     if (isNaN(numToAdd) || numToAdd < 1) {
                         if (numToAdd !== null) alert("Invalid number. Please enter a positive number.");
                         return;
@@ -1651,7 +1634,7 @@ async handleAuthorizedUser(user) {
             },
             async handleDeleteEntireProject(batchId, baseProjectName) {
                 const confirmationText = 'confirm';
-                const userInput = prompt(`This action is irreversible and will delete ALL tasks (Fix1-Fix6) associated with the project "${baseProjectName}".\n\nTo proceed, please type "${confirmationText}" in the box below.`);
+                const userInput = prompt(`This action is irreversible and will delete ALL tasks (Fix1-Fix6) associated with the project "${baseProjectName}".\\n\\nTo proceed, please type "${confirmationText}" in the box below.`);
                 if (userInput === confirmationText) {
                     await this.methods.deleteEntireProjectByBatchId.call(this, batchId, baseProjectName);
                 } else {
@@ -2781,7 +2764,7 @@ Status: ${dispute.status}
                             projectNames.add(data.baseProjectName);
                         }
                     });
-                    
+
                     const sortedNames = Array.from(projectNames).sort();
                     this.elements.projectSelectionList.innerHTML = '';
                     if (sortedNames.length === 0) {
@@ -2817,11 +2800,11 @@ Status: ${dispute.status}
                     alert("Please select at least one project to export.");
                     return;
                 }
-            
+
                 const selectedProjectNames = Array.from(selectedCheckboxes).map(cb => cb.value);
-            
+
                 this.methods.showLoading.call(this, "Generating CSV for selected projects...");
-            
+
                 try {
                     const projectsQuery = this.db.collection("projects").where("baseProjectName", "in", selectedProjectNames);
                     const allProjectsSnapshot = await projectsQuery.get();
@@ -2829,12 +2812,12 @@ Status: ${dispute.status}
                     allProjectsSnapshot.forEach(doc => {
                         if (doc.exists) projectsData.push(doc.data());
                     });
-            
+
                     if (projectsData.length === 0) {
                         alert("No project data found for the selected projects.");
                         return;
                     }
-            
+
                     const headers = ["Fix Cat", "Project Name", "Area/Task", "GSD", "Assigned To", "Status",
                         "Day 1 Start", "Day 1 Finish", "Day 1 Break",
                         "Day 2 Start", "Day 2 Finish", "Day 2 Break",
@@ -2843,10 +2826,10 @@ Status: ${dispute.status}
                         "Day 5 Start", "Day 5 Finish", "Day 5 Break",
                         "Day 6 Start", "Day 6 Finish", "Day 6 Break",
                         "Total (min)"];
-            
+
                     const rows = [headers.join(',')];
                     const formatTime = (ts) => ts?.toDate ? `"${ts.toDate().toTimeString().slice(0, 5)}"` : "";
-            
+
                     projectsData.forEach(project => {
                         const totalDurationMs = (project.durationDay1Ms || 0) + (project.durationDay2Ms || 0) + (project.durationDay3Ms || 0) +
                             (project.durationDay4Ms || 0) + (project.durationDay5Ms || 0) + (project.durationDay6Ms || 0);
@@ -2856,7 +2839,7 @@ Status: ${dispute.status}
                         const finalAdjustedDurationMs = Math.max(0, totalDurationMs - totalBreakMs) + additionalMs;
                         const totalMinutes = this.methods.formatMillisToMinutes.call(this, finalAdjustedDurationMs);
                         const status = (project.status || "").replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').trim();
-            
+
                         const rowData = [
                             project.fixCategory || "",
                             project.baseProjectName || "",
@@ -2886,7 +2869,7 @@ Status: ${dispute.status}
                         ];
                         rows.push(rowData.join(','));
                     });
-            
+
                     const csvContent = "data:text/csv;charset=utf-8," + rows.join('\n');
                     const encodedUri = encodeURI(csvContent);
                     const link = document.createElement("a");
@@ -2897,7 +2880,7 @@ Status: ${dispute.status}
                     document.body.removeChild(link);
                     alert("Selected project data exported successfully!");
                     this.elements.selectProjectsModal.style.display = 'none';
-            
+
                 } catch (error) {
                     alert("Failed to export data: " + error.message);
                 } finally {
