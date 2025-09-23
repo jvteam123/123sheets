@@ -506,21 +506,21 @@ document.addEventListener('DOMContentLoaded', () => {
             },
             async handleAuthorizedUser(user) {
                 this.elements.body.classList.remove('login-view-active');
-                this.elements.authWrapper.style.display = 'none';
-                this.elements.mainContainer.style.display = 'block';
-                this.elements.userNameP.textContent = user.displayName || "N/A";
-                this.elements.userEmailP.textContent = user.email || "N/A";
-                if (this.elements.userPhotoImg) this.elements.userPhotoImg.src = user.photoURL || 'default-user.png';
-                this.elements.userInfoDisplayDiv.style.display = 'flex';
-                if (this.elements.clearDataBtn) this.elements.clearDataBtn.style.display = 'none';
-                this.elements.loadingAuthMessageDiv.style.display = 'none';
-                if (this.elements.openSettingsBtn) this.elements.openSettingsBtn.style.display = 'block';
-                if (!this.state.isAppInitialized) {
-                    this.methods.listenForAppConfigChanges.call(this);
-                    this.methods.initializeFirebaseAndLoadData.call(this);
-                    this.state.isAppInitialized = true;
-                    this.methods.listenForNotifications.call(this);
-                    this.methods.checkForNewDisputes.call(this);
+    this.elements.authWrapper.style.display = 'none';
+    this.elements.mainContainer.style.display = 'flex';
+    this.elements.userNameP.textContent = user.displayName || "N/A";
+    this.elements.userEmailP.textContent = user.email || "N/A";
+    if (this.elements.userPhotoImg) this.elements.userPhotoImg.src = user.photoURL || 'default-user.png';
+    this.elements.userInfoDisplayDiv.style.display = 'flex';
+    if (this.elements.clearDataBtn) this.elements.clearDataBtn.style.display = 'none';
+    this.elements.loadingAuthMessageDiv.style.display = 'none';
+    if (this.elements.openSettingsBtn) this.elements.openSettingsBtn.style.display = 'block';
+    if (!this.state.isAppInitialized) {
+        this.methods.listenForAppConfigChanges.call(this);
+        this.methods.initializeFirebaseAndLoadData.call(this);
+        this.state.isAppInitialized = true;
+        this.methods.listenForNotifications.call(this);
+        this.methods.checkForNewDisputes.call(this);
                 }
             },
             handleSignedOutUser() {
