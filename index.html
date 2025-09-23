@@ -41,7 +41,7 @@
                 request.onupgradeneeded = (event) => {
                     const db = event.target.result;
                     if (!db.objectStoreNames.contains(objectStoreName)) {
-                        db.createObjectStore(objectStoreName, { keyPath: 'id', autoIncrement: true });
+                        db.createObjectStore(objectStoreName, { keyPath: 'id' });
                     }
                 };
 
@@ -62,7 +62,8 @@
                 const store = transaction.objectStore(objectStoreName);
                 
                 projectsToAdd.forEach(project => {
-                    store.add(project);
+                    const id = Date.now() + Math.random();
+                    store.add({ ...project, id });
                 });
 
                 transaction.oncomplete = () => resolve();
@@ -121,7 +122,7 @@
         );
 
         const PlusIcon = () => (
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinecap="round" strokeLinejoin="round">
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <line x1="5" y1="12" x2="19" y2="12"></line>
           </svg>
@@ -165,7 +166,7 @@
         );
 
         const formatDuration = (milliseconds) => {
-          if (milliseconds === null || milliseconds === undefined) {
+          if (milliseconds === null || milliseconds === undefined || isNaN(milliseconds)) {
             return '0m';
           }
           const totalSeconds = Math.floor(milliseconds / 1000);
@@ -175,7 +176,7 @@
         };
 
         const formatTotalMinutes = (milliseconds) => {
-          if (milliseconds === null || milliseconds === undefined) {
+          if (milliseconds === null || milliseconds === undefined || isNaN(milliseconds)) {
             return '0 mins';
           }
           const totalMinutes = Math.round(milliseconds / (1000 * 60));
@@ -188,7 +189,8 @@
         
         function App() {
           const [projects, setProjects] = useState([]);
-          const [selectedProjectId, setSelectedProjectId] = useState('');
+          const [selectedProjectName, setSelectedProjectName] = useState('');
+          const [selectedTaskId, setSelectedTaskId] = useState('');
           const [runningProjectId, setRunningProjectId] = useState(null);
           const [elapsedTime, setElapsedTime] = useState(0);
           const [isTLView, setIsTLView] = useState(false);
@@ -274,16 +276,20 @@
           }, [runningProjectId, projects]);
 
           const handleStartTimer = async () => {
-            if (!selectedProjectId) {
-              console.warn("Cannot start timer: Project not selected.");
+            if (!selectedTaskId) {
+              console.warn("Cannot start timer: Task not selected.");
               return;
             }
 
-            const projectToStart = projects.find(p => p.id === selectedProjectId);
+            const projectToStart = projects.find(p => p.id == selectedTaskId);
+
             if (!projectToStart || projectToStart.status !== 'Available') {
               console.warn("Cannot start timer: Selected project is not available.");
               return;
             }
+            
+            // Assuming a static user ID for IndexedDB testing
+            const staticUserId = 'test_user_id_1';
 
             if (runningProjectId) {
               const currentRunningTask = projects.find(p => p.id === runningProjectId);
@@ -294,11 +300,11 @@
               const updatedProject = {
                   ...projectToStart,
                   status: 'InProgressDay1',
-                  assignedTo: 'test_user_id_1', 
+                  assignedTo: staticUserId, 
                   startTimeDay1: Date.now(),
               };
               await updateProjectInDB(updatedProject);
-              setRunningProjectId(selectedProjectId);
+              setRunningProjectId(projectToStart.id);
               fetchProjects();
             } catch (error) {
               console.error("Error starting timer:", error);
@@ -310,6 +316,7 @@
               console.warn("Cannot stop timer: Project or start time is missing.");
               return;
             }
+            const staticUserId = 'test_user_id_1';
 
             try {
               const currentTime = Date.now();
@@ -323,7 +330,8 @@
               };
               await updateProjectInDB(updatedProject);
               setRunningProjectId(null);
-              setSelectedProjectId('');
+              setSelectedProjectName('');
+              setSelectedTaskId('');
               fetchProjects();
             } catch (error) {
               console.error("Error stopping timer:", error);
@@ -335,12 +343,11 @@
             if (!newProjectName.trim() || numNewTasks < 1) return;
 
             try {
-              const batchId = `batch_${Date.now()}`;
               const projectsToAdd = [];
 
               for (let i = 1; i <= numNewTasks; i++) {
                 projectsToAdd.push({
-                  batchId,
+                  batchId: `batch_${Date.now()}`,
                   baseProjectName: newProjectName.trim(),
                   areaTask: `Area${String(i).padStart(2, '0')}`,
                   fixCategory: "Fix1",
@@ -428,13 +435,15 @@
             setCurrentModal(null);
             setModalData({});
           };
-          
-          // Assuming a static user ID for IndexedDB testing
+
           const staticUserId = 'test_user_id_1';
-
-          const availableProjects = projects.filter(p => p.status === 'Available' || p.status === 'Day1Ended_AwaitingNext');
           const runningProject = projects.find(p => p.assignedTo === staticUserId && p.status === 'InProgressDay1');
-
+          
+          const uniqueProjectNames = Array.from(new Set(projects.map(p => p.baseProjectName)));
+          const availableTasksForSelectedProject = selectedProjectName 
+            ? projects.filter(p => p.baseProjectName === selectedProjectName && p.status === 'Available')
+            : [];
+          
           const totalTimePerProject = projects.reduce((acc, project) => {
               const projectName = project.baseProjectName;
               const fixCat = project.fixCategory;
@@ -622,33 +631,53 @@
                       <div className="bg-slate-800 p-6 md:p-8 rounded-2xl shadow-lg border border-slate-700 mb-8">
                         <h2 className="text-xl font-semibold mb-4 text-slate-300">Start a New Timer</h2>
                         <div className="flex flex-col sm:flex-row gap-4">
-                          <div className="flex-grow">
-                            <label htmlFor="project-select" className="block text-sm font-medium text-slate-400 mb-2">Select an Available Project</label>
-                            <select
-                              id="project-select"
-                              value={selectedProjectId}
-                              onChange={(e) => setSelectedProjectId(e.target.value)}
-                              className="w-full bg-slate-700 text-white p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
-                            >
-                              <option value="" disabled>Select a project...</option>
-                              {availableProjects.map((project) => (
-                                <option key={project.id} value={project.id}>
-                                  {project.baseProjectName} - {project.areaTask}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
+                            <div className="flex-grow">
+                                <label htmlFor="project-select" className="block text-sm font-medium text-slate-400 mb-2">Select a Project</label>
+                                <select
+                                    id="project-select"
+                                    value={selectedProjectName}
+                                    onChange={(e) => {
+                                        setSelectedProjectName(e.target.value);
+                                        setSelectedTaskId('');
+                                    }}
+                                    className="w-full bg-slate-700 text-white p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
+                                >
+                                    <option value="" disabled>Select a project...</option>
+                                    {uniqueProjectNames.map((projectName) => (
+                                        <option key={projectName} value={projectName}>
+                                            {projectName}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="flex-grow">
+                                <label htmlFor="area-select" className="block text-sm font-medium text-slate-400 mb-2">Select an Area/Task</label>
+                                <select
+                                    id="area-select"
+                                    value={selectedTaskId}
+                                    onChange={(e) => setSelectedTaskId(e.target.value)}
+                                    className="w-full bg-slate-700 text-white p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
+                                    disabled={!selectedProjectName}
+                                >
+                                    <option value="" disabled>Select an area...</option>
+                                    {availableTasksForSelectedProject.map((task) => (
+                                        <option key={task.id} value={task.id}>
+                                            {task.areaTask}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
                           <button
                             onClick={handleStartTimer}
-                            disabled={!selectedProjectId}
-                            className={`bg-indigo-600 text-white p-3 rounded-xl flex items-center justify-center shadow-md transition-colors self-end ${!selectedProjectId ? 'opacity-50 cursor-not-allowed' : 'hover:bg-indigo-500'}`}
+                            disabled={!selectedTaskId}
+                            className={`bg-indigo-600 text-white p-3 rounded-xl flex items-center justify-center shadow-md transition-colors self-end ${!selectedTaskId ? 'opacity-50 cursor-not-allowed' : 'hover:bg-indigo-500'}`}
                           >
                             <PlayIcon />
                           </button>
                         </div>
-                        {availableProjects.length === 0 && (
+                        {uniqueProjectNames.length === 0 && (
                           <p className="text-center text-slate-500 italic py-8">
-                            No available projects found.
+                            No available projects found. Add one in the TL Portal.
                           </p>
                         )}
                       </div>
