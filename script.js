@@ -513,7 +513,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (this.elements.userPhotoImg) this.elements.userPhotoImg.src = user.photoURL || 'default-user.png';
                 this.elements.userInfoDisplayDiv.style.display = 'flex';
                 if (this.elements.clearDataBtn) this.elements.clearDataBtn.style.display = 'none';
-                this.elements.appContentDiv.style.display = 'block';
                 this.elements.loadingAuthMessageDiv.style.display = 'none';
                 if (this.elements.openSettingsBtn) this.elements.openSettingsBtn.style.display = 'block';
                 if (!this.state.isAppInitialized) {
