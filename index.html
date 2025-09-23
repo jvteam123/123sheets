@@ -26,36 +26,87 @@
 <body class="bg-slate-900 text-white">
     <div id="root"></div>
 
-    <script type="module">
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js';
-        import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js';
-        import {
-            getFirestore, collection, addDoc, onSnapshot, updateDoc, doc, deleteDoc,
-            query, where, serverTimestamp, orderBy, writeBatch, getDocs
-        } from 'https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js';
-
-        window.firebaseConfig = {
-            apiKey: "AIzaSyA8WIXfj00AxSkecGqrWpk61pIQrgSmmEo",
-            authDomain: "react-time-tracker-cdbd2.firebaseapp.com",
-            projectId: "react-time-tracker-cdbd2",
-            storageBucket: "react-time-tracker-cdbd2.firebasestorage.app",
-            messagingSenderId: "1043791910954",
-            appId: "1:1043791910954:web:f56c707e26ab592c56cb53"
-        };
-        
-        window.firebase = {
-            initializeApp, getAuth, signInAnonymously, getFirestore,
-            collection, addDoc, onSnapshot, updateDoc, doc, deleteDoc,
-            query, where, serverTimestamp, orderBy, writeBatch, getDocs
-        };
-    </script>
-
     <script type="text/babel">
         const { useState, useEffect, useCallback } = React;
-        const { initializeApp, getAuth, signInAnonymously, getFirestore,
-            collection, addDoc, onSnapshot, updateDoc, doc, deleteDoc,
-            query, where, serverTimestamp, orderBy, writeBatch, getDocs
-        } = window.firebase;
+        const { IDBKeyRange } = window;
+
+        const dbName = 'LiteTimeTrackerDB';
+        const dbVersion = 1;
+        const objectStoreName = 'projects';
+
+        const openDB = () => {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(dbName, dbVersion);
+
+                request.onupgradeneeded = (event) => {
+                    const db = event.target.result;
+                    if (!db.objectStoreNames.contains(objectStoreName)) {
+                        db.createObjectStore(objectStoreName, { keyPath: 'id', autoIncrement: true });
+                    }
+                };
+
+                request.onsuccess = (event) => {
+                    resolve(event.target.result);
+                };
+
+                request.onerror = (event) => {
+                    reject('IndexedDB error: ' + event.target.error);
+                };
+            });
+        };
+
+        const addProjectsToDB = (projectsToAdd) => {
+            return new Promise(async (resolve, reject) => {
+                const db = await openDB();
+                const transaction = db.transaction([objectStoreName], 'readwrite');
+                const store = transaction.objectStore(objectStoreName);
+                
+                projectsToAdd.forEach(project => {
+                    store.add(project);
+                });
+
+                transaction.oncomplete = () => resolve();
+                transaction.onerror = (event) => reject(event.target.error);
+            });
+        };
+
+        const getProjectsFromDB = () => {
+            return new Promise(async (resolve, reject) => {
+                const db = await openDB();
+                const transaction = db.transaction([objectStoreName], 'readonly');
+                const store = transaction.objectStore(objectStoreName);
+                const request = store.getAll();
+
+                request.onsuccess = (event) => {
+                    resolve(event.target.result);
+                };
+                request.onerror = (event) => {
+                    reject(event.target.error);
+                };
+            });
+        };
+
+        const updateProjectInDB = (project) => {
+            return new Promise(async (resolve, reject) => {
+                const db = await openDB();
+                const transaction = db.transaction([objectStoreName], 'readwrite');
+                const store = transaction.objectStore(objectStoreName);
+                store.put(project);
+                transaction.oncomplete = () => resolve();
+                transaction.onerror = (event) => reject(event.target.error);
+            });
+        };
+
+        const deleteProjectFromDB = (id) => {
+            return new Promise(async (resolve, reject) => {
+                const db = await openDB();
+                const transaction = db.transaction([objectStoreName], 'readwrite');
+                const store = transaction.objectStore(objectStoreName);
+                store.delete(id);
+                transaction.oncomplete = () => resolve();
+                transaction.onerror = (event) => reject(event.target.error);
+            });
+        };
 
         const PlayIcon = () => (
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -130,19 +181,12 @@
           const totalMinutes = Math.round(milliseconds / (1000 * 60));
           return `${totalMinutes} mins`;
         };
-
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const collectionPath = `/artifacts/${appId}/public/data/projects`;
-
+        
         const FIX_CATEGORIES = {
             ORDER: ["Fix1", "Fix2", "Fix3", "Fix4", "Fix5", "Fix6"],
         };
         
         function App() {
-          const [db, setDb] = useState(null);
-          const [auth, setAuth] = useState(null);
-          const [userId, setUserId] = useState(null);
-          const [isAuthReady, setIsAuthReady] = useState(false);
           const [projects, setProjects] = useState([]);
           const [selectedProjectId, setSelectedProjectId] = useState('');
           const [runningProjectId, setRunningProjectId] = useState(null);
@@ -152,123 +196,75 @@
           const [numNewTasks, setNumNewTasks] = useState(1);
           const [currentModal, setCurrentModal] = useState(null);
           const [modalData, setModalData] = useState({});
-        
-          // Initialize Firebase and auth state
-          useEffect(() => {
-            try {
-              const app = initializeApp(window.firebaseConfig);
-              const firestore = getFirestore(app);
-              const firebaseAuth = getAuth(app);
-              setDb(firestore);
-              setAuth(firebaseAuth);
-        
-              const unsubscribe = firebaseAuth.onAuthStateChanged(async (user) => {
-                if (user) {
-                  setUserId(user.uid);
-                } else {
-                  try {
-                    const anonymousUser = await signInAnonymously(firebaseAuth);
-                    setUserId(anonymousUser.user.uid);
-                  } catch (error) {
-                    console.error("Anonymous sign-in failed:", error);
-                    setUserId(crypto.randomUUID());
-                  }
-                }
-                setIsAuthReady(true);
-              });
-        
-              return () => unsubscribe();
-            } catch (error) {
-                    console.error("Firebase initialization error:", error);
-                    setIsAuthReady(false);
-                    setUserId(crypto.randomUUID());
-                }
-            }, []);
-        
-            // Set up real-time listener for projects
-            useEffect(() => {
-                if (!db || !userId) return;
-        
-                const projectsQuery = query(collection(db, collectionPath), orderBy('creationTimestamp', 'desc'));
-        
-                const unsubscribe = onSnapshot(projectsQuery, (snapshot) => {
-                    const fetchedProjects = snapshot.docs.map(doc => ({
-                        id: doc.id,
-                        ...doc.data(),
-                        // Convert Firestore Timestamps to JS Date objects
-                        startTimeDay1: doc.data().startTimeDay1?.toDate(),
-                        finishTimeDay1: doc.data().finishTimeDay1?.toDate(),
-                        createdAt: doc.data().creationTimestamp?.toDate(),
-                    }));
-        
-                    // Find the currently running project for this user
-                    const runningProject = fetchedProjects.find(
-                        p => p.assignedTo === userId && p.status === 'InProgressDay1'
-                    );
-                    setRunningProjectId(runningProject ? runningProject.id : null);
-                    setProjects(fetchedProjects);
-                }, (error) => {
-                    console.error("Error fetching projects:", error);
-                });
-        
-                return () => unsubscribe();
-            }, [db, userId]);
-        
-          // Add default test project on first load if the collection is empty
-          useEffect(() => {
-            if (!db) return;
-        
-            const checkAndAddTestProject = async () => {
+
+          const fetchProjects = async () => {
               try {
-                const projectsRef = collection(db, collectionPath);
-                const snapshot = await getDocs(projectsRef);
-        
-                if (snapshot.empty) {
-                  console.log("Projects collection is empty. Adding a default test project.");
-                  const batch = writeBatch(db);
-                  const batchId = `test_batch_${Date.now()}`;
-                  const projectName = "Test Project";
-                  const numTasks = 10;
-                  
-                  for (let i = 1; i <= numTasks; i++) {
-                    const newProjectRef = doc(projectsRef);
-                    batch.set(newProjectRef, {
-                      batchId,
-                      baseProjectName: projectName,
-                      areaTask: `Area${String(i).padStart(2, '0')}`,
-                      fixCategory: "Fix1",
-                      gsd: "3in",
-                      assignedTo: "",
-                      status: "Available",
-                      durationDay1Ms: null,
-                      startTimeDay1: null,
-                      finishTimeDay1: null,
-                      isLocked: false,
-                      isReassigned: false,
-                      releasedToNextStage: false,
-                      creationTimestamp: serverTimestamp(),
-                      lastModifiedTimestamp: serverTimestamp()
-                    });
-                  }
-                  await batch.commit();
-                  console.log("Default test project added successfully!");
-                }
+                  const fetchedProjects = await getProjectsFromDB();
+                  setProjects(fetchedProjects);
               } catch (error) {
-                console.error("Error checking for or adding test project:", error);
+                  console.error("Error fetching projects from IndexedDB:", error);
               }
-            };
-            
-            checkAndAddTestProject();
-          }, [db]);
-        
-          // Timer logic
+          };
+
+          // Initialize IndexedDB and fetch projects
+          useEffect(() => {
+              const initializeAndFetch = async () => {
+                  try {
+                      const db = await openDB();
+                      const transaction = db.transaction([objectStoreName], 'readonly');
+                      const store = transaction.objectStore(objectStoreName);
+                      const countRequest = store.count();
+
+                      countRequest.onsuccess = (event) => {
+                          if (event.target.result === 0) {
+                              console.log("IndexedDB is empty. Adding a default test project.");
+                              const projectsToAdd = [];
+                              const batchId = `test_batch_${Date.now()}`;
+                              const projectName = "Test Project";
+                              const numTasks = 10;
+                              
+                              for (let i = 1; i <= numTasks; i++) {
+                                projectsToAdd.push({
+                                    batchId,
+                                    baseProjectName: projectName,
+                                    areaTask: `Area${String(i).padStart(2, '0')}`,
+                                    fixCategory: "Fix1",
+                                    gsd: "3in",
+                                    assignedTo: "",
+                                    status: "Available",
+                                    durationDay1Ms: null,
+                                    startTimeDay1: null,
+                                    finishTimeDay1: null,
+                                    isLocked: false,
+                                    isReassigned: false,
+                                    releasedToNextStage: false,
+                                    creationTimestamp: new Date(),
+                                    lastModifiedTimestamp: new Date()
+                                });
+                              }
+                              addProjectsToDB(projectsToAdd).then(() => fetchProjects());
+                          } else {
+                              fetchProjects();
+                          }
+                      };
+                      countRequest.onerror = (event) => {
+                          console.error("Error counting projects:", event.target.error);
+                      };
+                  } catch (error) {
+                      console.error("Error initializing IndexedDB:", error);
+                  }
+              };
+              initializeAndFetch();
+          }, []);
+
+          // Set up timer logic
           useEffect(() => {
             let interval;
             if (runningProjectId) {
               const project = projects.find(p => p.id === runningProjectId);
               if (project && project.startTimeDay1) {
                 interval = setInterval(() => {
-                  setElapsedTime(Date.now() - project.startTimeDay1.getTime());
+                  setElapsedTime(Date.now() - project.startTimeDay1);
                 }, 1000);
               }
             } else {
@@ -276,71 +272,74 @@
             }
             return () => clearInterval(interval);
           }, [runningProjectId, projects]);
-        
+
           const handleStartTimer = async () => {
-            if (!db || !userId || !selectedProjectId) {
-              console.warn("Cannot start timer: Firestore, user ID, or project not ready.");
+            if (!selectedProjectId) {
+              console.warn("Cannot start timer: Project not selected.");
               return;
             }
-        
+
             const projectToStart = projects.find(p => p.id === selectedProjectId);
             if (!projectToStart || projectToStart.status !== 'Available') {
               console.warn("Cannot start timer: Selected project is not available.");
               return;
             }
-        
+
             if (runningProjectId) {
               const currentRunningTask = projects.find(p => p.id === runningProjectId);
               await handleStopTimer(currentRunningTask);
             }
-        
+
             try {
-              const docRef = doc(db, collectionPath, selectedProjectId);
-              await updateDoc(docRef, {
-                status: 'InProgressDay1',
-                assignedTo: userId,
-                startTimeDay1: serverTimestamp(),
-              });
+              const updatedProject = {
+                  ...projectToStart,
+                  status: 'InProgressDay1',
+                  assignedTo: 'test_user_id_1', 
+                  startTimeDay1: Date.now(),
+              };
+              await updateProjectInDB(updatedProject);
               setRunningProjectId(selectedProjectId);
+              fetchProjects();
             } catch (error) {
               console.error("Error starting timer:", error);
             }
           };
-        
+
           const handleStopTimer = async (project) => {
-            if (!db || !userId || !project || !project.startTimeDay1) {
+            if (!project || !project.startTimeDay1) {
               console.warn("Cannot stop timer: Project or start time is missing.");
               return;
             }
-        
+
             try {
-              const docRef = doc(db, collectionPath, project.id);
-              const currentTime = new Date();
-              const newDurationMs = (project.durationDay1Ms || 0) + (currentTime.getTime() - project.startTimeDay1.getTime());
-        
-              await updateDoc(docRef, {
+              const currentTime = Date.now();
+              const newDurationMs = (project.durationDay1Ms || 0) + (currentTime - project.startTimeDay1);
+
+              const updatedProject = {
+                ...project,
                 status: 'Day1Ended_AwaitingNext',
-                finishTimeDay1: serverTimestamp(),
+                finishTimeDay1: currentTime,
                 durationDay1Ms: newDurationMs,
-              });
+              };
+              await updateProjectInDB(updatedProject);
               setRunningProjectId(null);
               setSelectedProjectId('');
+              fetchProjects();
             } catch (error) {
               console.error("Error stopping timer:", error);
             }
           };
-        
+
           const handleAddProject = async (e) => {
             e.preventDefault();
-            if (!db || !newProjectName.trim() || numNewTasks < 1) return;
-        
+            if (!newProjectName.trim() || numNewTasks < 1) return;
+
             try {
               const batchId = `batch_${Date.now()}`;
-              const firestoreBatch = writeBatch(db);
-        
+              const projectsToAdd = [];
+
               for (let i = 1; i <= numNewTasks; i++) {
-                const newProjectRef = doc(collection(db, collectionPath));
-                firestoreBatch.set(newProjectRef, {
+                projectsToAdd.push({
                   batchId,
                   baseProjectName: newProjectName.trim(),
                   areaTask: `Area${String(i).padStart(2, '0')}`,
@@ -354,42 +353,39 @@
                   isLocked: false,
                   isReassigned: false,
                   releasedToNextStage: false,
-                  creationTimestamp: serverTimestamp(),
-                  lastModifiedTimestamp: serverTimestamp()
+                  creationTimestamp: new Date(),
+                  lastModifiedTimestamp: new Date()
                 });
               }
-        
-              await firestoreBatch.commit();
+
+              await addProjectsToDB(projectsToAdd);
               setNewProjectName('');
               setNumNewTasks(1);
+              fetchProjects();
             } catch (error) {
               console.error("Error adding projects:", error);
             }
           };
-        
+
           const handleDeleteProject = async (id) => {
               try {
-                await deleteDoc(doc(db, collectionPath, id));
+                await deleteProjectFromDB(id);
+                fetchProjects();
               } catch (error) {
                 console.error("Error deleting project:", error);
               }
           };
-        
+
           const handleReleaseToNextFix = async (project) => {
-            if (!db || !project) return;
+            if (!project) return;
             const currentFixIndex = FIX_CATEGORIES.ORDER.indexOf(project.fixCategory);
             if (currentFixIndex < 0 || currentFixIndex >= FIX_CATEGORIES.ORDER.length - 1) return;
-        
+
             const nextFixCategory = FIX_CATEGORIES.ORDER[currentFixIndex + 1];
-        
+
             try {
-              const batch = writeBatch(db);
-              const docRef = doc(db, collectionPath, project.id);
-              
-              const newDocRef = doc(collection(db, collectionPath));
-              batch.set(newDocRef, {
+              const updatedProject = {
                 ...project,
-                id: undefined,
                 fixCategory: nextFixCategory,
                 status: "Available",
                 durationDay1Ms: null,
@@ -398,25 +394,30 @@
                 isLocked: false,
                 isReassigned: false,
                 releasedToNextStage: false,
-                creationTimestamp: serverTimestamp(),
-                lastModifiedTimestamp: serverTimestamp()
-              });
-        
-              batch.update(docRef, {
+                creationTimestamp: new Date(),
+                lastModifiedTimestamp: new Date()
+              };
+
+              await updateProjectInDB(updatedProject);
+
+              const originalProject = {
+                ...project,
                 releasedToNextStage: true
-              });
-        
-              await batch.commit();
+              };
+
+              await updateProjectInDB(originalProject);
+              fetchProjects();
+
             } catch (error) {
               console.error("Error releasing to next fix:", error);
             }
           };
-        
+
           const showConfirmationModal = (action, data) => {
             setCurrentModal('confirmation');
             setModalData({ action, ...data });
           };
-        
+
           const handleModalAction = async () => {
             if (modalData.action === 'delete') {
               await handleDeleteProject(modalData.id);
@@ -427,15 +428,18 @@
             setCurrentModal(null);
             setModalData({});
           };
-        
+          
+          // Assuming a static user ID for IndexedDB testing
+          const staticUserId = 'test_user_id_1';
+
           const availableProjects = projects.filter(p => p.status === 'Available' || p.status === 'Day1Ended_AwaitingNext');
-          const runningProject = projects.find(p => p.assignedTo === userId && p.status === 'InProgressDay1');
-        
+          const runningProject = projects.find(p => p.assignedTo === staticUserId && p.status === 'InProgressDay1');
+
           const totalTimePerProject = projects.reduce((acc, project) => {
               const projectName = project.baseProjectName;
               const fixCat = project.fixCategory;
               const durationMs = project.durationDay1Ms || 0;
-        
+
               if (!acc[projectName]) {
                   acc[projectName] = {};
               }
@@ -453,14 +457,6 @@
             if (nameA > nameB) return 1;
             return 0;
           });
-        
-          if (!isAuthReady) {
-            return (
-              <div className="flex items-center justify-center min-h-screen bg-slate-900 text-white font-inter">
-                <div className="text-xl">Loading...</div>
-              </div>
-            );
-          }
         
           return (
             <div className="min-h-screen bg-slate-900 text-white p-6 md:p-12 font-inter flex flex-col items-center">
