@@ -231,6 +231,7 @@
           const [projects, setProjects] = useState([]);
           const [selectedProjectName, setSelectedProjectName] = useState('');
           const [selectedTaskId, setSelectedTaskId] = useState('');
+          const [selectedDay, setSelectedDay] = useState(1);
           const [runningProjectId, setRunningProjectId] = useState(null);
           const [elapsedTime, setElapsedTime] = useState(0);
           const [isTLView, setIsTLView] = useState(false);
@@ -342,7 +343,7 @@
               const currentDay = getCurrentDay(project);
               const dayDurationField = `durationDay${currentDay}Ms`;
               const dayFinishField = `finishTimeDay${currentDay}`;
-              const nextStatus = project.status.replace('InProgress', 'Ended_AwaitingNext');
+              const nextStatus = `Day${currentDay}Ended_AwaitingNext`;
 
               const currentTime = Date.now();
               const newDurationMs = (project[dayDurationField] || 0) + (currentTime - lastActionTime);
@@ -366,25 +367,56 @@
                 const project = projects.find(p => p.id === selectedTaskId);
                 if (!project) return;
                 
-                let nextDay = 1;
-                let nextStatus = 'InProgressDay1';
-                if (project.status.startsWith('Day') && project.status.includes('Ended_AwaitingNext')) {
-                    nextDay = parseInt(project.status.match(/(\d+)/)[1], 10) + 1;
-                    nextStatus = `InProgressDay${nextDay}`;
+                const currentDay = parseInt(selectedDay, 10);
+                const currentStatus = project.status;
+                
+                // If a day is already in progress, don't start a new one
+                if (currentStatus.startsWith('InProgressDay')) {
+                    return;
                 }
 
                 const updatedProject = {
                     ...project,
-                    status: nextStatus,
-                    [`startTimeDay${nextDay}`]: Date.now(),
+                    status: `InProgressDay${currentDay}`,
+                    [`startTimeDay${currentDay}`]: Date.now(),
                     assignedTo: staticUserId,
                     lastModifiedTimestamp: new Date(),
                 };
+                
+                if (currentStatus === 'Paused') {
+                  const pausedDay = getCurrentDay(project);
+                  updatedProject.status = `InProgressDay${pausedDay}`;
+                  updatedProject[`startTimeDay${pausedDay}`] = Date.now();
+                }
+
                 await updateProjectInDB(updatedProject);
                 setRunningProjectId(project.id);
                 setLastActionTime(Date.now());
                 fetchProjects();
             }
+          };
+
+          const handlePauseResumeTimer = async (project) => {
+            if (!project) return;
+            const currentDay = getCurrentDay(project);
+            const dayDurationField = `durationDay${currentDay}Ms`;
+            const updatedProject = { ...project };
+
+            if (project.status.startsWith('InProgressDay')) { // Pause
+                const currentTime = Date.now();
+                const newDurationMs = (project[dayDurationField] || 0) + (currentTime - lastActionTime);
+                updatedProject.status = 'Paused';
+                updatedProject[dayDurationField] = newDurationMs;
+                setRunningProjectId(null);
+                setLastActionTime(null);
+            } else if (project.status === 'Paused') { // Resume
+                updatedProject.status = `InProgressDay${currentDay}`;
+                setRunningProjectId(project.id);
+                setLastActionTime(Date.now());
+            }
+
+            await updateProjectInDB(updatedProject);
+            fetchProjects();
           };
 
           const handleAddProject = async (e) => {
@@ -451,6 +483,7 @@
               const updatedProject = {
                   ...project,
                   [`breakDurationMinutesDay${day}`]: parseInt(value, 10) || 0,
+                  lastModifiedTimestamp: new Date(),
               };
 
               await updateProjectInDB(updatedProject);
@@ -468,7 +501,15 @@
               const updatedProject = {
                   ...project,
                   [`startTimeDay${day}`]: newDate.getTime(),
+                  lastModifiedTimestamp: new Date(),
               };
+              
+              // Recalculate duration if a finish time already exists
+              const finishTime = project[`finishTimeDay${day}`];
+              if (finishTime && newDate.getTime() < finishTime) {
+                  const newDurationMs = finishTime - newDate.getTime();
+                  updatedProject[`durationDay${day}Ms`] = newDurationMs;
+              }
 
               await updateProjectInDB(updatedProject);
               fetchProjects();
@@ -540,7 +581,7 @@
           const runningProject = projects.find(p => p.assignedTo === staticUserId && p.status.startsWith('InProgressDay'));
           const uniqueProjectNames = Array.from(new Set(projects.map(p => p.baseProjectName)));
           const availableTasksForSelectedProject = selectedProjectName 
-            ? projects.filter(p => p.baseProjectName === selectedProjectName && p.status.startsWith('Available'))
+            ? projects.filter(p => p.baseProjectName === selectedProjectName && (p.status.startsWith('Available') || p.status.startsWith('Day')))
             : [];
           
           const totalTimePerProject = projects.reduce((acc, project) => {
@@ -631,7 +672,7 @@
                                             {Object.keys(totalTimePerProject[projectName]).map(fixCat => (
                                                 <div key={fixCat} className="bg-slate-600 p-2 rounded-md">
                                                     <span className="font-semibold text-slate-300">{fixCat}:</span>
-                                                    <p className="font-mono">{formatTotalMinutes(totalTimePerProject[projectName][fixCat])}</p>
+                                                    <p className="font-mono">{formatTotalMinutes(totalTimePerProject[projectName][fixCat])} ({formatMillisecondsToHours(totalTimePerProject[projectName][fixCat])} hrs)</p>
                                                 </div>
                                             ))}
                                         </div>
@@ -714,16 +755,23 @@
                           Area/Task: {runningProject.areaTask}
                         </p>
                         <div className="text-5xl md:text-6xl font-mono text-green-400 my-4">
-                            {formatDuration(elapsedTime + (getTaskTotalDuration(runningProject) || 0))}
+                            {formatDuration((runningProject.durationDay1Ms || 0) + elapsedTime)}
                         </div>
                         <div className="flex space-x-4 mt-4">
-                          <button
+                            <button
+                                onClick={() => handlePauseResumeTimer(runningProject)}
+                                className="bg-yellow-600 text-white p-4 rounded-full flex items-center justify-center shadow-md hover:bg-yellow-500 transition-colors"
+                                aria-label="Pause Timer"
+                            >
+                                <PauseIcon className="w-8 h-8" />
+                            </button>
+                            <button
                                 onClick={handleStartOrEndTimer}
                                 className="bg-red-600 text-white p-4 rounded-full flex items-center justify-center shadow-md hover:bg-red-500 transition-colors"
                                 aria-label="End Day"
                             >
                                 <StopIcon className="w-8 h-8" />
-                          </button>
+                            </button>
                         </div>
                         <div className="grid grid-cols-2 gap-4 text-left w-full mt-8">
                             <div className="bg-slate-700 p-4 rounded-xl">
