@@ -271,7 +271,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     ...this.elements,
                     body: document.body,
                     authWrapper: document.getElementById('auth-wrapper'),
-                    mainContainer: document.querySelector('.container'),
+                    mainContainer: document.querySelector('.main-content'),
                     signInBtn: document.getElementById('signInBtn'),
                     signOutBtn: document.getElementById('signOutBtn'),
                     clearDataBtn: document.getElementById('clearDataBtn'),
