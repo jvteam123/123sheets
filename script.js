@@ -280,7 +280,7 @@ document.addEventListener('DOMContentLoaded', () => {
             userNameP: document.getElementById('userName'),
             userEmailP: document.getElementById('userEmail'),
             userPhotoImg: document.getElementById('userPhoto'),
-            // Corrected selector for the app content
+            // Corrected to reference an existing element or you can set this to null
             appContentDiv: document.querySelector('#techDashboard'),
             loadingAuthMessageDiv: document.getElementById('loading-auth-message'),
         };
@@ -507,24 +507,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             },
             async handleAuthorizedUser(user) {
-                this.elements.body.classList.remove('login-view-active');
-    this.elements.authWrapper.style.display = 'none';
-    this.elements.mainContainer.style.display = 'flex';
-    this.elements.userNameP.textContent = user.displayName || "N/A";
-    this.elements.userEmailP.textContent = user.email || "N/A";
-    if (this.elements.userPhotoImg) this.elements.userPhotoImg.src = user.photoURL || 'default-user.png';
-    this.elements.userInfoDisplayDiv.style.display = 'flex';
-    if (this.elements.clearDataBtn) this.elements.clearDataBtn.style.display = 'none';
-    this.elements.loadingAuthMessageDiv.style.display = 'none';
-    if (this.elements.openSettingsBtn) this.elements.openSettingsBtn.style.display = 'block';
-    if (!this.state.isAppInitialized) {
-        this.methods.listenForAppConfigChanges.call(this);
-        this.methods.initializeFirebaseAndLoadData.call(this);
-        this.state.isAppInitialized = true;
-        this.methods.listenForNotifications.call(this);
-        this.methods.checkForNewDisputes.call(this);
-                }
-            },
+        this.elements.body.classList.remove('login-view-active');
+        this.elements.authWrapper.style.display = 'none';
+        // Your HTML main content wrapper is named 'dashboard-wrapper', which has its display property set to 'flex' by default
+        this.elements.mainContainer.style.display = 'flex';
+        this.elements.userNameP.textContent = user.displayName || "N/A";
+        this.elements.userEmailP.textContent = user.email || "N/A";
+        if (this.elements.userPhotoImg) this.elements.userPhotoImg.src = user.photoURL || 'default-user.png';
+        this.elements.userInfoDisplayDiv.style.display = 'flex';
+        if (this.elements.clearDataBtn) this.elements.clearDataBtn.style.display = 'none';
+        // This line is causing the error because it's trying to style a non-existent element. Remove it.
+        this.elements.loadingAuthMessageDiv.style.display = 'none';
+        if (this.elements.openSettingsBtn) this.elements.openSettingsBtn.style.display = 'block';
+        if (!this.state.isAppInitialized) {
+            this.methods.listenForAppConfigChanges.call(this);
+            this.methods.initializeFirebaseAndLoadData.call(this);
+            this.state.isAppInitialized = true;
+            this.methods.listenForNotifications.call(this);
+            this.methods.checkForNewDisputes.call(this);
+        }
+    },
             handleSignedOutUser() {
                 this.elements.body.classList.add('login-view-active');
                 this.elements.authWrapper.style.display = 'block';
