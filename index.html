@@ -240,7 +240,8 @@
           const [currentModal, setCurrentModal] = useState(null);
           const [modalData, setModalData] = useState({});
           const [lastActionTime, setLastActionTime] = useState(null);
-          const [editingProjectId, setEditingProjectId] = useState(null);
+          const [editingProject, setEditingProject] = useState(null);
+          const [isEditing, setIsEditing] = useState(false);
 
           const fetchProjects = async () => {
               try {
@@ -374,23 +375,28 @@
                 if (currentStatus.startsWith('InProgressDay')) {
                     return;
                 }
+                
+                let updatedProject = { ...project };
 
-                const updatedProject = {
+                if (currentStatus === 'Paused') {
+                  const pausedDay = getCurrentDay(project);
+                  if (pausedDay !== currentDay) {
+                      alert("Cannot resume timer on a different day. Please start a new timer for the selected day.");
+                      return;
+                  }
+                  updatedProject.status = `InProgressDay${pausedDay}`;
+                } else {
+                  updatedProject = {
                     ...project,
                     status: `InProgressDay${currentDay}`,
                     [`startTimeDay${currentDay}`]: Date.now(),
                     assignedTo: staticUserId,
-                    lastModifiedTimestamp: new Date(),
-                };
-                
-                if (currentStatus === 'Paused') {
-                  const pausedDay = getCurrentDay(project);
-                  updatedProject.status = `InProgressDay${pausedDay}`;
-                  updatedProject[`startTimeDay${pausedDay}`] = Date.now();
+                  };
                 }
+                updatedProject.lastModifiedTimestamp = new Date();
 
                 await updateProjectInDB(updatedProject);
-                setRunningProjectId(project.id);
+                setRunningProjectId(updatedProject.id);
                 setLastActionTime(Date.now());
                 fetchProjects();
             }
@@ -426,12 +432,10 @@
             try {
               const projectsToAdd = [];
               const projectName = newProjectName.trim();
-              const batchId = `batch_${Date.now()}`;
 
               for (let i = 1; i <= numNewTasks; i++) {
                 projectsToAdd.push({
                   id: Date.now() + Math.random(),
-                  batchId,
                   baseProjectName: projectName,
                   areaTask: `Area${String(i).padStart(2, '0')}`,
                   fixCategory: "Fix1",
@@ -465,6 +469,19 @@
             } catch (error) {
               console.error("Error adding projects:", error);
             }
+          };
+          
+          const handleEditProjectSave = async (e, project) => {
+            e.preventDefault();
+            await updateProjectInDB(project);
+            setIsEditing(false);
+            setEditingProject(null);
+            fetchProjects();
+          };
+
+          const handleEditProjectCancel = () => {
+            setIsEditing(false);
+            setEditingProject(null);
           };
 
           const handleDeleteProject = async (id) => {
@@ -577,11 +594,33 @@
             setCurrentModal(null);
             setModalData({});
           };
+          
+          const getStatusText = (status) => {
+              if (status.includes('Ended')) {
+                  return 'Available';
+              } else if (status === 'Available') {
+                  return 'Available';
+              } else if (status.startsWith('InProgress')) {
+                  return 'In Progress';
+              }
+              return status;
+          };
+
+          const getStatusColor = (status) => {
+              if (status === 'Available') {
+                  return 'bg-green-100 text-green-800';
+              } else if (status.startsWith('InProgressDay')) {
+                  return 'bg-yellow-100 text-yellow-800';
+              }
+              return 'bg-slate-100 text-slate-800';
+          };
+
 
           const runningProject = projects.find(p => p.assignedTo === staticUserId && p.status.startsWith('InProgressDay'));
           const uniqueProjectNames = Array.from(new Set(projects.map(p => p.baseProjectName)));
+          const selectedProject = projects.find(p => p.id === selectedTaskId);
           const availableTasksForSelectedProject = selectedProjectName 
-            ? projects.filter(p => p.baseProjectName === selectedProjectName && (p.status.startsWith('Available') || p.status.startsWith('Day')))
+            ? projects.filter(p => p.baseProjectName === selectedProjectName && (p.status.startsWith('Available') || p.status.startsWith('Day') || p.status === 'Paused'))
             : [];
           
           const totalTimePerProject = projects.reduce((acc, project) => {
@@ -709,25 +748,33 @@
                                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-400">{project.fixCategory}</td>
                                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                      project.status === 'Available' ? 'bg-green-100 text-green-800' :
-                                      project.status.startsWith('InProgressDay') ? 'bg-yellow-100 text-yellow-800' :
-                                      'bg-slate-100 text-slate-800'
+                                      getStatusColor(project.status)
                                     }`}>
-                                      {project.status}
+                                      {getStatusText(project.status)}
                                     </span>
                                   </td>
                                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-400">{formatTotalMinutes(getTaskTotalDuration(project))}</td>
                                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
                                     <button
-                                      onClick={() => showConfirmationModal('delete', { id: project.id, name: project.baseProjectName })}
+                                        onClick={() => {
+                                            setIsEditing(true);
+                                            setEditingProject(project);
+                                        }}
+                                        className="text-indigo-400 hover:text-indigo-600"
+                                        aria-label="Edit Project"
+                                    >
+                                      <EditIcon className="w-5 h-5" />
+                                    </button>
+                                    <button
+                                      onClick={() => showConfirmationModal('delete', { id: project.id, name: project.areaTask })}
                                       className="text-red-400 hover:text-red-600"
                                       aria-label="Delete Project"
                                     >
                                       <Trash2Icon className="w-5 h-5" />
                                     </button>
-                                    {project.status === 'Day1Ended_AwaitingNext' && (
+                                    {project.status.includes('Ended') && !project.releasedToNextStage && (
                                         <button
-                                          onClick={() => showConfirmationModal('release', { id: project.id, name: project.baseProjectName })}
+                                          onClick={() => showConfirmationModal('release', { id: project.id, name: project.areaTask })}
                                           className="text-green-400 hover:text-green-600"
                                           aria-label="Release to Next Fix"
                                         >
@@ -755,7 +802,7 @@
                           Area/Task: {runningProject.areaTask}
                         </p>
                         <div className="text-5xl md:text-6xl font-mono text-green-400 my-4">
-                            {formatDuration((runningProject.durationDay1Ms || 0) + elapsedTime)}
+                            {formatDuration((runningProject[`durationDay${getCurrentDay(runningProject)}Ms`] || 0) + elapsedTime)}
                         </div>
                         <div className="flex space-x-4 mt-4">
                             <button
@@ -775,8 +822,8 @@
                         </div>
                         <div className="grid grid-cols-2 gap-4 text-left w-full mt-8">
                             <div className="bg-slate-700 p-4 rounded-xl">
-                                <h3 className="text-sm font-semibold text-indigo-300 mb-1">Day 1 Duration</h3>
-                                <p className="font-mono text-lg">{formatDuration(runningProject.durationDay1Ms)}</p>
+                                <h3 className="text-sm font-semibold text-indigo-300 mb-1">Day {getCurrentDay(runningProject)} Duration</h3>
+                                <p className="font-mono text-lg">{formatDuration(runningProject[`durationDay${getCurrentDay(runningProject)}Ms`])}</p>
                             </div>
                             <div className="bg-slate-700 p-4 rounded-xl">
                                 <h3 className="text-sm font-semibold text-indigo-300 mb-1">Total Duration</h3>
@@ -808,7 +855,16 @@
                                 </select>
                             </div>
                             <div className="flex-grow">
-                                <label htmlFor="area-select" className="block text-sm font-medium text-slate-400 mb-2">Select an Area/Task</label>
+                                <label htmlFor="area-select" className="flex items-center text-sm font-medium text-slate-400 mb-2">
+                                    Select an Area/Task
+                                    {selectedProject && (
+                                        <span className={`ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                            getStatusColor(selectedProject.status)
+                                        }`}>
+                                            {getStatusText(selectedProject.status)}
+                                        </span>
+                                    )}
+                                </label>
                                 <select
                                     id="area-select"
                                     value={selectedTaskId}
@@ -848,7 +904,7 @@
                                 className={`bg-indigo-600 text-white p-3 rounded-xl flex items-center justify-center shadow-md transition-colors ${!selectedTaskId ? 'opacity-50 cursor-not-allowed' : 'hover:bg-indigo-500'}`}
                             >
                                 <PlayIcon />
-                                <span className="ml-2">Start Day {selectedDay}</span>
+                                <span className="ml-2">{runningProject ? `End Day ${getCurrentDay(runningProject)}` : `Start Day ${selectedDay}`}</span>
                             </button>
                           </div>
                         {uniqueProjectNames.length === 0 && (
@@ -862,6 +918,55 @@
                 )}
         
               </div>
+              {isEditing && editingProject && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+                  <div className="bg-slate-800 p-8 rounded-xl shadow-lg border border-slate-700 max-w-lg w-full text-center">
+                    <h2 className="text-lg font-bold text-indigo-400 mb-4">Edit Task: {editingProject.areaTask}</h2>
+                    <form onSubmit={(e) => handleEditProjectSave(e, editingProject)} className="space-y-4">
+                        {[1, 2, 3, 4, 5].map(day => (
+                            <div key={day} className="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-4">
+                                <label className="w-1/4 text-sm font-semibold text-slate-300 text-left">Day {day}</label>
+                                <div className="flex-1 flex space-x-2">
+                                    <div className="flex flex-col flex-1">
+                                        <label className="text-xs text-slate-400 text-left">Start Time</label>
+                                        <input
+                                            type="time"
+                                            value={formatTimeForInput(editingProject[`startTimeDay${day}`])}
+                                            onChange={(e) => setEditingProject({...editingProject, [`startTimeDay${day}`]: new Date(editingProject[`startTimeDay${day}`] || Date.now()).setHours(...e.target.value.split(':')), lastModifiedTimestamp: new Date()})}
+                                            className="bg-slate-700 text-white p-2 rounded-xl focus:outline-none"
+                                        />
+                                    </div>
+                                    <div className="flex flex-col flex-1">
+                                        <label className="text-xs text-slate-400 text-left">Break (mins)</label>
+                                        <input
+                                            type="number"
+                                            value={editingProject[`breakDurationMinutesDay${day}`] || 0}
+                                            onChange={(e) => setEditingProject({...editingProject, [`breakDurationMinutesDay${day}`]: parseInt(e.target.value) || 0, lastModifiedTimestamp: new Date()})}
+                                            className="bg-slate-700 text-white p-2 rounded-xl focus:outline-none"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                        <div className="flex justify-center space-x-4 mt-6">
+                          <button
+                            type="submit"
+                            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-500"
+                          >
+                            <SaveIcon className="w-5 h-5 inline mr-2"/> Save
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleEditProjectCancel}
+                            className="px-4 py-2 bg-slate-600 text-white rounded-md hover:bg-slate-500"
+                          >
+                            <XIcon className="w-5 h-5 inline mr-2"/> Cancel
+                          </button>
+                        </div>
+                    </form>
+                  </div>
+                </div>
+              )}
               {currentModal === 'confirmation' && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
                   <div className="bg-slate-800 p-8 rounded-xl shadow-lg border border-slate-700 max-w-sm w-full text-center">
