@@ -290,30 +290,30 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
                 attachClick(self.elements.openAddNewProjectBtn, () => {
                     const pin = prompt("Enter PIN to add new tracker:");
-                    if (pin === self.config.pins.TL_DASHBOARD_PIN) self.elements.projectFormModal.style.display = ;
+                    if (pin === self.config.pins.TL_DASHBOARD_PIN) self.elements.projectFormModal.style.display = 'block';
                     else if (pin) alert("Incorrect PIN.");
                 });
                 attachClick(self.elements.openTlDashboardBtn, () => {
                     const pin = prompt("Enter PIN to access Project Settings:");
                     if (pin === self.config.pins.TL_DASHBOARD_PIN) {
-                        self.elements.tlDashboardModal.style.display = ;
+                        self.elements.tlDashboardModal.style.display = 'block';
                         self.methods.renderTLDashboard.call(self);
                     } else if (pin) alert("Incorrect PIN.");
                 });
                 attachClick(self.elements.openSettingsBtn, () => {
                     const pin = prompt("Enter PIN to access User Settings:");
                     if (pin === self.config.pins.TL_DASHBOARD_PIN) {
-                        self.elements.settingsModal.style.display = ;
+                        self.elements.settingsModal.style.display = 'block';
                         self.methods.renderUserManagement.call(self);
                         self.methods.exitEditMode.call(self);
                     } else if (pin) alert("Incorrect PIN.");
                 });
                 attachClick(self.elements.openTlSummaryBtn, () => {
-                    self.elements.tlSummaryModal.style.display = ;
+                    self.elements.tlSummaryModal.style.display = 'block';
                     self.methods.generateTlSummaryData.call(self);
                 });
                 attachClick(self.elements.openDisputeBtn, () => {
-                    self.elements.disputeModal.style.display = ;
+                    self.elements.disputeModal.style.display = 'block';
                     self.methods.openDisputeModal.call(self);
                     self.methods.fetchDisputes.call(self);
                     self.state.newDisputesCount = 0;
@@ -330,7 +330,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 attachClick(self.elements.openImportCsvBtn, () => {
                     const pin = prompt("Enter PIN to import CSV:");
                     if (pin === self.config.pins.TL_DASHBOARD_PIN) {
-                        self.elements.importCsvModal.style.display = ;
+                        self.elements.importCsvModal.style.display = 'block';
                         if (self.elements.csvFileInput) self.elements.csvFileInput.value = '';
                         if (self.elements.processCsvBtn) self.elements.processCsvBtn.disabled = true;
                         if (self.elements.csvImportStatus) self.elements.csvImportStatus.textContent = '';
@@ -507,12 +507,13 @@ document.addEventListener('DOMContentLoaded', () => {
             async handleAuthorizedUser(user) {
                 this.elements.body.classList.remove('login-view-active');
                 this.elements.authWrapper.style.display = 'none';
-                this.elements.mainContainer.style.display = ;
+                this.elements.mainContainer.style.display = 'block';
                 this.elements.userNameP.textContent = user.displayName || "N/A";
                 this.elements.userEmailP.textContent = user.email || "N/A";
                 if (this.elements.userPhotoImg) this.elements.userPhotoImg.src = user.photoURL || 'default-user.png';
                 this.elements.userInfoDisplayDiv.style.display = 'flex';
                 if (this.elements.clearDataBtn) this.elements.clearDataBtn.style.display = 'none';
+                this.elements.appContentDiv.style.display = 'block';
                 this.elements.loadingAuthMessageDiv.style.display = 'none';
                 if (this.elements.openSettingsBtn) this.elements.openSettingsBtn.style.display = 'block';
                 if (!this.state.isAppInitialized) {
