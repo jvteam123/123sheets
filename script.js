@@ -267,22 +267,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             },
             setupAuthRelatedDOMReferences() {
-                this.elements = {
-                    ...this.elements,
-                    body: document.body,
-                    authWrapper: document.getElementById('auth-wrapper'),
-                    mainContainer: document.querySelector('.dashboard-wrapper'),
-                    signInBtn: document.getElementById('signInBtn'),
-                    signOutBtn: document.getElementById('signOutBtn'),
-                    clearDataBtn: document.getElementById('clearDataBtn'),
-                    userInfoDisplayDiv: document.getElementById('user-info-display'),
-                    userNameP: document.getElementById('userName'),
-                    userEmailP: document.getElementById('userEmail'),
-                    userPhotoImg: document.getElementById('userPhoto'),
-                    appContentDiv: document.getElementById('app-content'),
-                    loadingAuthMessageDiv: document.getElementById('loading-auth-message'),
-                };
-            },
+        this.elements = {
+            ...this.elements,
+            body: document.body,
+            authWrapper: document.getElementById('auth-wrapper'),
+            // Corrected selector for the main dashboard wrapper
+            mainContainer: document.querySelector('.dashboard-wrapper'),
+            signInBtn: document.getElementById('signInBtn'),
+            signOutBtn: document.getElementById('signOutBtn'),
+            clearDataBtn: document.getElementById('clearDataBtn'),
+            userInfoDisplayDiv: document.getElementById('user-info-display'),
+            userNameP: document.getElementById('userName'),
+            userEmailP: document.getElementById('userEmail'),
+            userPhotoImg: document.getElementById('userPhoto'),
+            // Corrected selector for the app content
+            appContentDiv: document.querySelector('#techDashboard'),
+            loadingAuthMessageDiv: document.getElementById('loading-auth-message'),
+        };
+    },
             attachEventListeners() {
                 const self = this;
                 const attachClick = (element, handler) => {
