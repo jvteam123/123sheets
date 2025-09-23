@@ -340,6 +340,7 @@
         #settingsModal .modal-content { max-width: 700px; max-height: 85vh; overflow-y: auto;}
         #importCsvModal .modal-content { max-width: 500px; }
         #disputeModal .modal-content { max-width: 900px; }
+        #selectProjectsModal .modal-content { max-width: 550px; }
         .close-btn { color: #aaa; float: right; font-size: 28px; font-weight: bold; } .close-btn:hover, .close-btn:focus { color: black; text-decoration: none; cursor: pointer; }
         #newProjectForm label, #disputeForm label { display: block; margin-top: 8px; font-weight: bold; font-size: 0.85em;}
         #newProjectForm input[type="text"], #newProjectForm input[type="number"], #newProjectForm select, .form-control, #disputeForm input, #disputeForm select, #disputeForm textarea { width: calc(100% - 18px); padding: 7px; margin-top: 3px; border: 1px solid #ddd; border-radius: 3px; box-sizing: border-box; font-size: 0.85em; }
@@ -372,7 +373,6 @@
         #allowedEmailsList { list-style-type: none; padding: 0; max-height: 200px; overflow-y: auto; border: 1px solid #eee; border-radius: 4px; margin-bottom: 10px;}
         #allowedEmailsList li { padding: 8px; border-bottom: 1px dashed #eee; display: flex; justify-content: space-between; align-items: center;}
         #allowedEmailsList li:last-child { border-bottom: none; }
-        #addEmailInput { flex-grow: 1; padding: 7px; margin-right: 5px; border: 1px solid #ddd; border-radius: 3px; box-sizing: border-box; font-size: 0.9em;}
         .settings-input-group { display: flex; margin-bottom: 10px; align-items: center;}
         .group-selector-controls { display: flex; justify-content: center; align-items: center; margin-top: 15px; gap: 10px; flex-wrap: wrap; }
         .group-selector-controls label { font-size: 0.9em; font-weight: bold; color: #555; }
@@ -564,7 +564,8 @@
                     <span id="disputeNotificationBadge" class="chat-notification-badge" style="display: none;"></span>
                 </button>
                 <button id="tscLinkBtn" class="btn btn-warning btn-lg" style="display: none;"></button>
-                <button id="exportCsvBtn" class="btn btn-info btn-lg" style="margin-left: 10px;">📊 Export to CSV</button>
+                <button id="exportCsvBtn" class="btn btn-info btn-lg" style="margin-left: 10px;">📊 Export All CSV</button>
+                <button id="openSelectProjectsBtn" class="btn btn-info btn-lg">📊 Export Selected CSV</button>
                 <button id="openImportCsvBtn" class="btn btn-secondary btn-lg" style="margin-left: 10px;">📥 Import CSV</button>
                 <a href="https://pcsbonus.vercel.app/#" target="_blank" class="btn btn-warning btn-lg" style="text-decoration: none; margin-left: 10px;">Estimate Bunos</a>
             </div>
@@ -659,6 +660,19 @@
                     <input type="file" id="csvFileInput" accept=".csv" style="margin-bottom: 15px;">
                     <button id="processCsvBtn" class="btn btn-primary" disabled>Process CSV</button>
                     <div id="csvImportStatus" style="margin-top: 10px; font-size: 0.9em; color: #555;"></div>
+                </div>
+            </div>
+            <div id="selectProjectsModal" class="modal">
+                <div class="modal-content large">
+                    <span class="close-btn" id="closeSelectProjectsBtn">&times;</span>
+                    <h2>Select Projects to Export</h2>
+                    <div id="projectListContainer" style="max-height: 60vh; overflow-y: auto; padding-right: 15px;">
+                        <ul id="projectSelectionList" style="list-style: none; padding: 0;">
+                            </ul>
+                    </div>
+                    <div style="margin-top: 20px; text-align: right;">
+                        <button id="exportSelectedProjectsBtn" class="btn btn-primary">Export Selected Projects</button>
+                    </div>
                 </div>
             </div>
             <div id="disputeModal" class="modal">
