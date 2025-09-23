@@ -3,515 +3,330 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Team123 - Project Tracker V2 </title>
+    <title>Team123 - Project Tracker V2</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/vanilla-calendar-pro/build/vanilla-calendar.min.css">
     <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #6c757d;
+            --success-color: #2ecc71;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+            --info-color: #17a2b8;
+            --bg-color: #f0f2f5;
+            --card-bg-color: #ffffff;
+            --text-color: #2c3e50;
+            --border-color: #e0e0e0;
+            --shadow-light: 0 2px 5px rgba(0,0,0,0.05);
+            --shadow-medium: 0 4px 12px rgba(0,0,0,0.08);
+            --border-radius-sm: 4px;
+            --border-radius-md: 8px;
+            --border-radius-lg: 12px;
+        }
+
+        body {
+            font-family: 'Inter', Arial, sans-serif;
+            margin: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            transition: background-color 0.3s ease;
+        }
+        
         body.login-view-active {
-        font-family: 'Inter', Arial, sans-serif;
-        background: linear-gradient(135deg, #f0f2f5, #e6e9ee);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        min-height: 100vh;
-        padding: 20px;
-        box-sizing: border-box;
-        margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
         }
-        body.login-view-active .container,
-        body.login-view-active #loading-auth-message {
-        display: none;
+        
+        body.login-view-active .dashboard-wrapper {
+            display: none;
         }
-        body.login-view-active #auth-wrapper {
-        display: block;
-        }
-        #auth-wrapper {
-        width: 100%;
-        max-width: 420px;
-        }
-        #auth-wrapper .login-card {
-        background-color: #ffffff;
-        padding: 40px 50px;
-        border-radius: 12px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-        text-align: center;
-        transition: all 0.3s ease-out;
-        }
-        #auth-wrapper .login-card h2 {
-        font-family: 'Inter', Arial, sans-serif;
-        font-size: 1.8em;
-        margin-bottom: 8px;
-        color: #2c3e50;
-        font-weight: 600;
-        }
-        #auth-wrapper .login-card p {
-        color: #6c757d;
-        margin-bottom: 30px;
-        font-size: 1.1em;
-        }
-        #auth-wrapper #signInBtn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 15px;
-        background-color: #ffffff;
-        color: #333;
-        border: 1px solid #ccc;
-        font-size: 1.05em;
-        font-family: 'Inter', Arial, sans-serif;
-        font-weight: 500;
-        padding: 12px 24px;
-        border-radius: 8px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        width: 100%;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        }
-        #auth-wrapper #signInBtn:hover {
-        border-color: #b3b3b3;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        transform: translateY(-2px);
-        }
-        #auth-wrapper .google-icon {
-        width: 22px;
-        height: 22px;
-        }
-    #tlSummaryModal .modal-content {
-        max-width: 80%;
-        width: 900px;
-        padding: 25px;
-        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.25);
-        border-radius: 12px;
-    }
-    .summary-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        border-bottom: 2px solid #e9ecef;
-        padding-bottom: 15px;
-        margin-bottom: 20px;
-    }
-    .summary-title {
-        text-align: left;
-        color: #2c3e50;
-        font-size: 1.8em;
-        font-weight: 600;
-        margin: 0;
-    }
-    .summary-container {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        gap: 25px;
-    }
-    .project-summary-card {
-        background-color: #ffffff;
-        border: 1px solid #e0e0e0;
-        border-radius: 10px;
-        padding: 20px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-        display: flex;
-        flex-direction: column;
-    }
-    .project-name-header {
-        color: #0056b3;
-        font-size: 1.3em;
-        margin: 0 0 15px 0;
-        padding-bottom: 10px;
-        border-bottom: 1px solid #e9ecef;
-        text-align: center;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-    .fix-categories-grid {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 10px;
-        flex-grow: 1;
-    }
-    .fix-category-item {
-        padding: 12px;
-        border-radius: 6px;
-        font-size: 1em;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-weight: 500;
-        color: #333;
-        border: 1px solid rgba(0, 0, 0, 0.05);
-    }
-    .fix-category-name {
-        font-weight: 600;
-    }
-    .fix-category-data {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-    .fix-category-minutes {
-        font-weight: 500;
-    }
-    .fix-category-hours {
-        font-size: 0.9em;
-        color: #555;
-    }
-    .tech-info-section {
-        margin-top: 25px;
-        padding-top: 20px;
-        border-top: 2px solid #e9ecef;
-    }
-    .tech-info-header {
-        font-size: 1.4em;
-        color: #2c3e50;
-        margin-bottom: 15px;
-    }
-    .tech-info-list {
-        list-style: none;
-        padding: 0;
-    }
-    .tech-info-list li {
-        background-color: #f8f9fa;
-        padding: 10px 15px;
-        border-radius: 6px;
-        margin-bottom: 8px;
-        font-size: 1em;
-    }
-    .dashboard-batch-item {
-        background-color: #f9f9f9;
-        border: 1px solid #e0e0e0;
-        border-radius: 8px;
-        padding: 15px;
-        margin-bottom: 15px;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-    }
-    .dashboard-batch-item h4 {
-        color: #0056b3;
-        margin-top: 0;
-        margin-bottom: 8px;
-        font-size: 1.3em;
-        border-bottom: 1px solid #eee;
-        padding-bottom: 6px;
-    }
-    .dashboard-actions-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 15px;
-        width: 100%;
-    }
-    .dashboard-actions-group {
-        border: 1px solid #dcdcdc;
-        border-radius: 6px;
-        padding: 12px;
-        background-color: #ffffff;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-    }
-    .dashboard-actions-group h6 {
-        font-size: 1em;
-        color: #333;
-        margin-top: 0;
-        margin-bottom: 4px;
-        border-bottom: 1px dashed #e9ecef;
-        padding-bottom: 4px;
-    }
-    .dashboard-action-buttons {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-        margin-top: 4px;
-    }
-    .dashboard-action-buttons .btn {
-        padding: 6px 12px;
-        font-size: 0.85em;
-        min-width: 100px;
-    }
-    @media (max-width: 768px) {
-        .dashboard-actions-grid {
-            grid-template-columns: 1fr;
-        }
-        .dashboard-action-buttons .btn {
+
+        .dashboard-wrapper {
+            display: flex;
+            height: 100vh;
             width: 100%;
-            margin-right: 0;
         }
-    }
-        body { font-family: Arial, sans-serif; margin: 0; background-color: #f4f7f6; color: #333; line-height: 1.4; }
-        .container { width: 98%; max-width: 1900px; margin: 10px auto; padding: 10px; background-color: #fff; box-shadow: 0 0 10px rgba(0,0,0,0.1); border-radius: 5px; }
-        #auth-container {
-        padding: 10px 15px;
-        min-height: 60px;
-        text-align: center;
-        border-bottom: 1px solid #eee;
-        margin-bottom: 15px;
-        background-color: #f8f9fa;
-        border-radius: 5px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
+
+        .sidebar {
+            width: 250px;
+            background-color: var(--text-color);
+            color: #ecf0f1;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #475569;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
         }
-        #auth-container h2 {
-        font-size: 1.1em;
-        margin-bottom: 8px;
-        color: #333;
+
+        .sidebar h2 {
+            color: #fff;
+            margin-top: 0;
+            margin-bottom: 30px;
+            font-size: 1.5em;
+            text-align: center;
         }
-        #user-info-display {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 10px;
-        flex-wrap: wrap;
-        margin-top: 5px;
+
+        .sidebar-nav button {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            padding: 12px 15px;
+            margin-bottom: 10px;
+            background-color: transparent;
+            border: none;
+            color: #ecf0f1;
+            font-size: 1.1em;
+            cursor: pointer;
+            border-radius: var(--border-radius-md);
+            transition: background-color 0.3s ease, color 0.3s ease;
+            text-align: left;
+            gap: 12px;
         }
-        #user-info-display img {
-        border-radius: 50%;
-        width: 40px;
-        height: 40px;
-        border: 2px solid #ddd;
-        object-fit: cover;
+
+        .sidebar-nav button:hover, .sidebar-nav button.active {
+            background-color: #475569;
+            color: #fff;
         }
-        #user-info-display .user-details p {
-        margin: 0;
-        font-size: 0.9em;
+        
+        .sidebar-nav button .icon {
+            font-size: 1.2em;
         }
-        #user-info-display .user-details p:first-child {
-        font-weight: bold;
+
+        .main-content {
+            flex-grow: 1;
+            padding: 25px;
+            overflow-y: auto;
+            background-color: var(--bg-color);
         }
-        #auth-container #signInBtn, #signOutBtn, #clearDataBtn {
-        padding: 8px 18px;
-        font-size: 1em;
-        cursor: pointer;
-        border: none;
-        border-radius: 4px;
-        transition: background-color: 0.3s ease;
-        margin-top: 8px;
+        
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--border-color);
         }
-        #signOutBtn { background-color: #e74c3c; color: white; } #signOutBtn:hover { background-color: #c0392b; }
-        #clearDataBtn { background-color: #6c757d; color: white; } #clearDataBtn:hover { background-color: #5a6268; }
-        #app-content { display: none; }
-        #loading-auth-message { text-align: center; padding: 20px; font-size: 1.1em; color: #555; margin-top: 50px;}
-        h1, h2, h3 { color: #2c3e50; text-align: center; margin-bottom: 12px; font-size: 1.5em; }
-        h2 { font-size: 1.3em; }
-        h3 { font-size: 1.1em; text-align: left; margin-top: 15px; border-bottom: 1px solid #ccc; padding-bottom: 5px;}
-        .table-scroll-wrapper {
-        width: 100%;
-        max-height: 60vh;
-        overflow-y: auto;
-        overflow-x: scroll;
+
+        .dashboard-header h1 {
+            margin: 0;
+            font-size: 2em;
+            color: var(--text-color);
+            text-align: left;
         }
-        .action-bar {
-        margin-bottom: 15px;
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-        align-items: center;
-        justify-content: flex-start;
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 8px 15px;
+            background-color: var(--card-bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-lg);
+            cursor: pointer;
+            transition: box-shadow 0.3s ease;
         }
-        .btn { padding: 4px 8px; border: none; border-radius: 3px; cursor: pointer; font-size: 0.8em; transition: background-color: 0.3s ease; margin: 2px; min-width: 60px; text-align: center; vertical-align: middle;}
-        .btn-lg { padding: 7px 12px; font-size: 0.9em; }
-        .btn-group-toggle { min-width: 25px; padding: 2px 6px; font-size: 0.9em; margin-left: 10px; background-color: #7f8c8d; color:white; }
-        .btn-group-toggle:hover { background-color: #95a5a6;}
-        .btn-danger { background-color: #e74c3c; color: white; } .btn-danger:hover { background-color: #c0392b; }
-        .btn-primary { background-color: #3498db; color: white; } .btn-primary:hover { background-color: #2980b9; }
-        .btn-success { background-color: #2ecc71; color: white; } .btn-success:hover { background-color: #27ae60; }
-        .btn-mark-done { background-color: #1abc9c; color: white; } .btn-mark-done:hover { background-color: #16a085; }
-        .btn-day-start { background-color: #007bff; color: white; }
-        .btn-day-start:hover { background-color: #0056b3; }
-        .btn-day-end { background-color: #fd7e14; color: white; }
-        .btn-day-end:hover { background-color: #c85e08; }
-        .btn-warning { background-color: #f39c12; color: white; }
-        .btn-warning:hover { background-color: #e67e22; }
-        .btn-info { background-color: #17a2b8; color: white; }
+        
+        .user-profile:hover {
+            box-shadow: var(--shadow-medium);
+        }
+        
+        .user-profile img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .user-profile .info {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .user-profile .info .name {
+            font-weight: 600;
+            font-size: 1em;
+        }
+
+        .user-profile .info .email {
+            font-size: 0.85em;
+            color: #777;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: var(--border-radius-md);
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 500;
+            transition: background-color 0.3s ease;
+        }
+
+        .btn-primary { background-color: var(--primary-color); color: white; }
+        .btn-primary:hover { background-color: #2980b9; }
+
+        .btn-success { background-color: var(--success-color); color: white; }
+        .btn-success:hover { background-color: #27ae60; }
+
+        .btn-secondary { background-color: var(--secondary-color); color: white; }
+        .btn-secondary:hover { background-color: #5a6268; }
+
+        .btn-info { background-color: var(--info-color); color: white; }
         .btn-info:hover { background-color: #138496; }
-        .btn-secondary { background-color: #6c757d; color: white; } .btn-secondary:hover { background-color: #5a6268; }
-        .btn:disabled { background-color: #bdc3c7 !important; color: #7f8c8d !important; cursor: not-allowed; }
-        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); }
-        .modal-content { background-color: #fefefe; margin: 5% auto; padding: 15px; border: 1px solid #888; width: 90%; border-radius: 5px; position: relative; }
-        .modal-content.large { max-width: 800px; }
-        #projectFormModal .modal-content { max-width: 480px; }
-        #tlDashboardModal .modal-content { max-width: 750px; max-height: 85vh; overflow-y: auto;}
-        #settingsModal .modal-content { max-width: 700px; max-height: 85vh; overflow-y: auto;}
-        #importCsvModal .modal-content { max-width: 500px; }
-        #disputeModal .modal-content { max-width: 900px; }
-        #selectProjectsModal .modal-content { max-width: 550px; }
-        .close-btn { color: #aaa; float: right; font-size: 28px; font-weight: bold; } .close-btn:hover, .close-btn:focus { color: black; text-decoration: none; cursor: pointer; }
-        #newProjectForm label, #disputeForm label { display: block; margin-top: 8px; font-weight: bold; font-size: 0.85em;}
-        #newProjectForm input[type="text"], #newProjectForm input[type="number"], #newProjectForm select, .form-control, #disputeForm input, #disputeForm select, #disputeForm textarea { width: calc(100% - 18px); padding: 7px; margin-top: 3px; border: 1px solid #ddd; border-radius: 3px; box-sizing: border-box; font-size: 0.85em; }
-        #newProjectForm button[type="submit"], #disputeForm button[type="submit"] { margin-top: 12px; }
-        .form-group { margin-bottom: 1rem; }
-        #projectTable, #disputeTable { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.8em; }
-        #projectTable th, #projectTable td, #disputeTable th, #disputeTable td { border: 1px solid #ddd; padding: 3px 5px; text-align: left; vertical-align: middle; white-space: nowrap; }
-        #projectTable thead th, #disputeTable thead th { background-color: #34495e; color: white; font-weight: bold; position: sticky; top: 0; z-index: 10;}
-        #projectTable td.wrap-text { white-space: normal; }
-        #projectTable select.assigned-to-select,
-        #projectTable select.break-select,
-        #projectTable input[type="time"],
-        #projectTable textarea.tech-notes-input,
-        #projectTable input[type="number"].additional-minutes-input {
-        width: calc(100% - 6px); padding: 2px; border: 1px solid #ccc; border-radius: 2px; box-sizing: border-box; font-size: 1em; background-color: #fff;
+        
+        .btn-danger { background-color: var(--danger-color); color: white; }
+        .btn-danger:hover { background-color: #c0392b; }
+
+        .btn-warning { background-color: var(--warning-color); color: white; }
+        .btn-warning:hover { background-color: #e67e22; }
+
+        .btn:disabled {
+            background-color: #bdc3c7 !important;
+            color: #7f8c8d !important;
+            cursor: not-allowed;
         }
+        
+        .action-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+            justify-content: flex-end;
+        }
+
+        .filter-bar {
+            background-color: var(--card-bg-color);
+            padding: 15px;
+            border-radius: var(--border-radius-md);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-light);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .filter-bar label {
+            font-weight: 500;
+            font-size: 0.9em;
+            color: #555;
+        }
+
+        .filter-bar select {
+            padding: 8px;
+            border-radius: var(--border-radius-sm);
+            border: 1px solid #ccc;
+            font-size: 0.9em;
+            background-color: #f8f9fa;
+        }
+
+        .table-container {
+            background-color: var(--card-bg-color);
+            border-radius: var(--border-radius-md);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-light);
+            padding: 20px;
+        }
+
+        .table-scroll-wrapper {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        .project-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 0.85em;
+        }
+
+        .project-table th, .project-table td {
+            padding: 12px 10px;
+            white-space: nowrap;
+            border-bottom: 1px solid var(--border-color);
+            border-right: 1px solid var(--border-color);
+        }
+
+        .project-table th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            text-align: left;
+        }
+
+        .project-table td:first-child { border-left: 1px solid var(--border-color); }
+        .project-table tr:last-child td { border-bottom: none; }
+        .project-table tr:hover { background-color: #f0f8ff; }
+        .project-table input, .project-table select {
+            padding: 6px;
+            border-radius: var(--border-radius-sm);
+            border: 1px solid #ccc;
+            width: 100%;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+
+        .dashboard-container {
+            display: none;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .dashboard-container.active {
+            display: flex;
+        }
+
+        .tl-dashboard-content, .user-management-content {
+            background-color: var(--card-bg-color);
+            padding: 20px;
+            border-radius: var(--border-radius-md);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-light);
+        }
+        
+        #auth-wrapper {
+            width: 100%;
+            max-width: 420px;
+        }
+
+        #auth-wrapper .login-card {
+            background-color: #ffffff;
+            padding: 40px 50px;
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--shadow-medium);
+            text-align: center;
+        }
+        
+        /* Modal styles */
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); }
+        .modal-content { background-color: var(--card-bg-color); margin: 5% auto; padding: 25px; border-radius: var(--border-radius-lg); width: 90%; max-width: 500px; position: relative; box-shadow: var(--shadow-medium); }
+        .close-btn { color: #aaa; float: right; font-size: 28px; font-weight: bold; }
+        .close-btn:hover, .close-btn:focus { color: black; text-decoration: none; cursor: pointer; }
+
+        /* Other styles from previous file */
         .batch-header-row td { background-color: #6c757d !important; color: white; font-size: 1.1em; font-weight: bold; text-align: left; padding: 6px 8px; }
         .fix-group-header td { background-color: #adb5bd !important; color: #212529; font-size: 1.0em; font-weight: bold; text-align: left; padding: 4px 8px; cursor:pointer; padding-left: 30px; }
         .hidden-group-row { display: none; }
         #projectTable td.total-duration-column { font-weight: bold; background-color: #c0392b; color: white; }
         .reassigned-task-highlight { background-color: #FFF9C4 !important; }
-        #projectTable tbody tr:not(.fix-group-header):not(.batch-header-row):hover { background-color: #d0e0f0 !important; }
         .status { padding: 2px 5px; border-radius: 3px; color: white; font-weight: bold; text-align: center; display: inline-block; font-size:0.95em; }
         .status-available { background-color: #3498db; }
         .status-inprogressday1, .status-day1ended_awaitingnext, .status-inprogressday2, .status-day2ended_awaitingnext, .status-inprogressday3, .status-day3ended_awaitingnext, .status-inprogressday4, .status-day4ended_awaitingnext, .status-inprogressday5, .status-day5ended_awaitingnext, .status-inprogressday6, .status-day6ended_awaitingnext { background-color: #f39c12; }
         .status-completed { background-color: #2ecc71; }
         .status-reassigned_techabsent { background-color: #B0BEC5; color: #263238; }
-        #tlDashboardContent { margin-top:15px; }
-        .dashboard-batch-item { border: 1px solid #bdc3c7; padding: 10px; margin-bottom: 10px; background-color: #fff; border-radius: 4px; }
-        #allowedEmailsList { list-style-type: none; padding: 0; max-height: 200px; overflow-y: auto; border: 1px solid #eee; border-radius: 4px; margin-bottom: 10px;}
-        #allowedEmailsList li { padding: 8px; border-bottom: 1px dashed #eee; display: flex; justify-content: space-between; align-items: center;}
-        #allowedEmailsList li:last-child { border-bottom: none; }
-        .settings-input-group { display: flex; margin-bottom: 10px; align-items: center;}
-        .group-selector-controls { display: flex; justify-content: center; align-items: center; margin-top: 15px; gap: 10px; flex-wrap: wrap; }
-        .group-selector-controls label { font-size: 0.9em; font-weight: bold; color: #555; }
-        .group-selector-controls select { padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9em; min-width: 150px; }
-        #loadingOverlay {
-        display: none; position: fixed; z-index: 9999; width: 100%; height: 100%; top: 0; left: 0; background-color: rgba(0,0,0,0.5); cursor: wait;
-        justify-content: center; align-items: center; flex-direction: column; color: white; font-size: 1.2em; font-weight: bold;
-        }
-        .spinner {
-        border: 4px solid rgba(255, 255, 255, 0.3); border-radius: 50%; border-top: 4px solid #fff;
-        width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 10px;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        
-        .column-hidden {
-            display: none;
-        }
-        .user-management-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-            margin-right: 20px;
-        }
-        #userManagementForm {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr auto;
-            gap: 10px;
-            align-items: flex-end;
-            margin-bottom: 20px;
-            padding: 15px;
-            background-color: #f8f9fa;
-            border-radius: 8px;
-        }
-        #userManagementForm .form-group {
-            margin-bottom: 0;
-        }
-        #userManagementForm label {
-            font-weight: bold;
-            font-size: 0.85em;
-            margin-bottom: 4px;
-            display: block;
-        }
-        #userManagementTable {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        #userManagementTable th, #userManagementTable td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
-        }
-        #userManagementTable th {
-            background-color: #e9ecef;
-        }
-        #userManagementTable .btn-danger, #userManagementTable .btn-secondary {
-            padding: 4px 8px;
-            margin-right: 5px;
-        }
-        #userFormButtons {
-            display: flex;
-            gap: 10px;
-        }
-       .dispute-status-pending {
-            color: #f39c12;
-            font-weight: bold;
-        }
-        .dispute-status-done {
-            color: #2ecc71;
-            font-weight: bold;
-        }
-        #projectTable th,
-        #projectTable td {
-            background-color: #fff;
-            min-width: 100px;
-        }
-        #projectTable thead th {
-            position: sticky;
-            top: 0;
-            z-index: 20;
-        }
-        #projectTable th:nth-child(1),
-        #projectTable td:nth-child(1) {
-            position: sticky;
-            left: 0;
-            z-index: 15;
-            min-width: 80px;
-        }
-        #projectTable th:nth-child(2),
-        #projectTable td:nth-child(2) {
-            position: sticky;
-            left: 80px;
-            z-index: 15;
-            min-width: 150px;
-        }
-        #projectTable th:nth-child(3),
-        #projectTable td:nth-child(3) {
-            position: sticky;
-            left: 230px;
-            z-index: 15;
-            min-width: 100px;
-        }
-        #projectTable th:nth-child(4),
-        #projectTable td:nth-child(4) {
-            position: sticky;
-            left: 330px;
-            z-index: 15;
-            min-width: 60px;
-        }
-        #projectTable th:nth-child(5),
-        #projectTable td:nth-child(5) {
-            position: sticky;
-            left: 390px;
-            z-index: 15;
-            min-width: 120px;
-        }
-        #projectTable th:nth-child(6),
-        #projectTable td:nth-child(6) {
-            position: sticky;
-            left: 510px;
-            z-index: 15;
-            min-width: 150px;
-        }
-        #projectTable thead th:nth-child(1),
-        #projectTable thead th:nth-child(2),
-        #projectTable thead th:nth-child(3),
-        #projectTable thead th:nth-child(4),
-        #projectTable thead th:nth-child(5),
-        #projectTable thead th:nth-child(6) {
-            background-color: #34495e;
-        }
-        #projectTable tbody td:nth-child(1),
-        #projectTable tbody td:nth-child(2),
-        #projectTable tbody td:nth-child(3),
-        #projectTable tbody td:nth-child(4),
-        #projectTable tbody td:nth-child(5),
-        #projectTable tbody td:nth-child(6) {
-            background-color: inherit;
-        }
+        .user-management-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .dispute-status-pending { color: #f39c12; font-weight: bold; }
+        .dispute-status-done { color: #2ecc71; font-weight: bold; }
     </style>
     <link rel="icon" type="image/png" href="icon.png">
 </head>
@@ -535,72 +350,126 @@
             </button>
         </div>
     </div>
-    <div class="container">
-        <div id="auth-container">
-            <h2>Project Tracker Login</h2>
-            <button id="clearDataBtn" class="btn btn-secondary" style="display: none; margin-top: 10px;">Clear Login Data</button>
-            <div id="user-info-display" style="display: none;">
-                <img id="userPhoto" src="" alt="User Photo">
-                <div class="user-details">
-                    <p id="userName"></p>
-                    <p id="userEmail"></p>
-                </div>
-                <button id="signOutBtn" class="btn btn-danger">Sign Out</button>
-            </div>
-            <button id="clearDataBtn" style="display: none;">Clear Local App Data</button>
-        </div>
-        <div id="loading-auth-message">
-            <p>Please sign in to access the Project Tracker.</p>
-        </div>
-        <div id="app-content">
-            <h1>Team123 - Project Tracker</h1>
-            <div class="action-bar">
-                <button id="openAddNewProjectBtn" class="btn btn-success btn-lg">➕ Add New Tracker</button>
-                <button id="openTlDashboardBtn" class="btn btn-primary btn-lg">👑 Project Settings</button>
-                <button id="openSettingsBtn" class="btn btn-info btn-lg" style="display:none;">⚙️ User Settings</button>
-                <button id="openTlSummaryBtn" class="btn btn-info btn-lg">📝 TL Summary</button>
-                <button id="openDisputeBtn" class="btn btn-danger btn-lg" style="position: relative;">
-                    Dispute
+    
+    <div class="dashboard-wrapper">
+        <aside class="sidebar" id="sidebar">
+            <h2>Team123</h2>
+            <div class="sidebar-nav">
+                <button id="openTechDashboardBtn" class="active"><i class="fas fa-tasks icon"></i> Tech Dashboard</button>
+                <button id="openTlDashboardBtn"><i class="fas fa-tools icon"></i> Project Settings</button>
+                <button id="openSettingsBtn"><i class="fas fa-users-cog icon"></i> User Management</button>
+                <button id="openTlSummaryBtn"><i class="fas fa-chart-bar icon"></i> TL Summary</button>
+                <button id="openDisputeBtn" style="position: relative;"><i class="fas fa-exclamation-triangle icon"></i> Dispute
                     <span id="disputeNotificationBadge" class="chat-notification-badge" style="display: none;"></span>
                 </button>
-                <button id="tscLinkBtn" class="btn btn-warning btn-lg" style="display: none;"></button>
-                <button id="exportCsvBtn" class="btn btn-info btn-lg" style="margin-left: 10px;">📊 Export All CSV</button>
-                <button id="exportSelectedCsvBtn" class="btn btn-info btn-lg">📊 Export Selected CSV</button>
-                <button id="openImportCsvBtn" class="btn btn-secondary btn-lg" style="margin-left: 10px;">📥 Import CSV</button>
-                <a href="https://pcsbonus.vercel.app/#" target="_blank" class="btn btn-warning btn-lg" style="text-decoration: none; margin-left: 10px;">Estimate Bunos</a>
+                <button id="exportSelectedCsvBtn"><i class="fas fa-file-csv icon"></i> Export Selected</button>
+                <button id="exportAllCsvBtn"><i class="fas fa-download icon"></i> Export All</button>
+                <button id="openImportCsvBtn"><i class="fas fa-upload icon"></i> Import CSV</button>
             </div>
-            <div id="projectFormModal" class="modal">
-                <div class="modal-content">
-                    <span class="close-btn" id="closeProjectFormBtn">&times;</span>
-                    <h2>Add New Tracker</h2>
-                    <form id="newProjectForm">
-                        <label for="numRows">Number of Area:</label>
-                        <input type="number" id="numRows" value="1" min="1" required>
-                        <label for="baseProjectName">Project Name:</label>
-                        <input type="text" id="baseProjectName" value="PROJ_ID_XYZ" required>
-                        <label for="gsd">GSD:</label>
-                        <select id="gsd" required>
-                            <option value="3in">3in</option>
-                            <option value="4in">4in</option>
-                            <option value="6in">6in</option>
-                            <option value="9in">9in</option>
-                        </select>
-                        <button type="submit" class="btn btn-success">Add Project(s)</button>
-                    </form>
+            <div class="user-profile" style="margin-top: auto; display: none;">
+                <img id="userPhoto" src="" alt="User Photo">
+                <div class="info">
+                    <span class="name" id="userName"></span>
+                    <span class="email" id="userEmail"></span>
                 </div>
             </div>
-            <div id="tlDashboardModal" class="modal">
-                <div class="modal-content">
-                    <span class="close-btn" id="closeTlDashboardBtn">&times;</span>
-                    <h2>👑 Project Settings</h2>
-                    <div id="tlDashboardContent"></div>
+            <button id="signOutBtn" class="btn btn-danger" style="margin-top: 15px; display: none;">Sign Out</button>
+        </aside>
+
+        <main class="main-content" id="mainContent">
+            <div id="techDashboard" class="dashboard-container active">
+                <div class="dashboard-header">
+                    <h1>Tech Dashboard</h1>
+                    <div class="user-profile">
+                        <img id="userPhoto" src="" alt="User Photo">
+                        <div class="info">
+                            <span class="name" id="userName"></span>
+                            <span class="email" id="userEmail"></span>
+                        </div>
+                        <button id="signOutBtn" class="btn btn-danger btn-sm">Sign Out</button>
+                    </div>
+                </div>
+
+                <div class="filter-bar">
+                    <label for="monthFilter">Month:</label>
+                    <select id="monthFilter">
+                        <option value="">All Months</option>
+                    </select>
+                    <label for="batchIdSelect">Project:</label>
+                    <select id="batchIdSelect">
+                        <option value="">All Projects</option>
+                    </select>
+                    <label for="fixCategoryFilter">Fix Category:</label>
+                    <select id="fixCategoryFilter">
+                        <option value="">All</option>
+                        <option value="Fix1">Fix1</option>
+                        <option value="Fix2">Fix2</option>
+                        <option value="Fix3">Fix3</option>
+                        <option value="Fix4">Fix4</option>
+                        <option value="Fix5">Fix5</option>
+                        <option value="Fix6">Fix6</option>
+                    </select>
+                </div>
+
+                <div class="table-container">
+                    <div class="table-scroll-wrapper">
+                        <table id="projectTable" class="project-table">
+                            <thead>
+                                <tr>
+                                    <th>Fix Cat</th>
+                                    <th>Project Name</th>
+                                    <th>Area/Task</th>
+                                    <th>GSD</th>
+                                    <th>Assigned To</th>
+                                    <th>Status</th>
+                                    <th>Day 1 Start</th>
+                                    <th>Day 1 Finish</th>
+                                    <th>Day 1 Break</th>
+                                    <th>Day 2 Start</th>
+                                    <th>Day 2 Finish</th>
+                                    <th>Day 2 Break</th>
+                                    <th>Day 3 Start</th>
+                                    <th>Day 3 Finish</th>
+                                    <th>Day 3 Break</th>
+                                    <th>Day 4 Start</th>
+                                    <th>Day 4 Finish</th>
+                                    <th>Day 4 Break</th>
+                                    <th>Day 5 Start</th>
+                                    <th>Day 5 Finish</th>
+                                    <th>Day 5 Break</th>
+                                    <th>Day 6 Start</th>
+                                    <th>Day 6 Finish</th>
+                                    <th>Day 6 Break</th>
+                                    <th>Progress</th>
+                                    <th>Total (min)</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="projectTableBody"></tbody>
+                        </table>
+                        <div id="paginationControls" style="display: none; text-align: center; padding: 15px;">
+                            <button id="prevPageBtn" class="btn btn-secondary">« Previous</button>
+                            <span id="pageInfo" style="margin: 0 15px; font-weight: bold;"></span>
+                            <button id="nextPageBtn" class="btn btn-secondary">Next »</button>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div id="settingsModal" class="modal">
-                <div class="modal-content">
-                    <span class="close-btn" id="closeSettingsBtn">&times;</span>
+
+            <div id="tlDashboard" class="dashboard-container">
+                <div class="dashboard-header">
+                    <h1>Project Settings</h1>
+                </div>
+                <div class="tl-dashboard-content" id="tlDashboardContent"></div>
+            </div>
+            
+            <div id="userManagementDashboard" class="dashboard-container">
+                <div class="dashboard-header">
+                    <h1>User Management</h1>
+                </div>
+                <div class="user-management-content" id="userManagementContent">
                     <div class="user-management-header">
-                        <h2>⚙️ User Management</h2>
+                        <h2>User Management</h2>
                         <div>
                             <button id="importUsersBtn" class="btn btn-info">Import Users</button>
                             <button id="exportUsersBtn" class="btn btn-primary">Export Users</button>
@@ -640,254 +509,197 @@
                     </table>
                 </div>
             </div>
-            <div id="tlSummaryModal" class="modal">
-                <div class="modal-content">
-                    <span class="close-btn" id="closeTlSummaryBtn">&times;</span>
-                    <div class="summary-header">
-                        <h2 class="summary-title">TL Summary</h2>
-                    </div>
-                    <div id="tlSummaryContent">
-                        <p>Loading summary...</p>
-                    </div>
-                </div>
+        </main>
+    </div>
+
+    <div id="projectFormModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" id="closeProjectFormBtn">&times;</span>
+            <h2>Add New Tracker</h2>
+            <form id="newProjectForm">
+                <label for="numRows">Number of Area:</label>
+                <input type="number" id="numRows" value="1" min="1" required>
+                <label for="baseProjectName">Project Name:</label>
+                <input type="text" id="baseProjectName" value="PROJ_ID_XYZ" required>
+                <label for="gsd">GSD:</label>
+                <select id="gsd" required>
+                    <option value="3in">3in</option>
+                    <option value="4in">4in</option>
+                    <option value="6in">6in</option>
+                    <option value="9in">9in</option>
+                </select>
+                <button type="submit" class="btn btn-success">Add Project(s)</button>
+            </form>
+        </div>
+    </div>
+    
+    <div id="tlSummaryModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" id="closeTlSummaryBtn">&times;</span>
+            <div class="summary-header">
+                <h2 class="summary-title">TL Summary</h2>
             </div>
-            <div id="importCsvModal" class="modal">
-                <div class="modal-content">
-                    <span class="close-btn" id="closeImportCsvBtn">&times;</span>
-                    <h2>📥 Import Projects from CSV</h2>
-                    <p>Upload a CSV file. The file should have headers matching the export format.</p>
-                    <input type="file" id="csvFileInput" accept=".csv" style="margin-bottom: 15px;">
-                    <button id="processCsvBtn" class="btn btn-primary" disabled>Process CSV</button>
-                    <div id="csvImportStatus" style="margin-top: 10px; font-size: 0.9em; color: #555;"></div>
-                </div>
+            <div id="tlSummaryContent">
+                <p>Loading summary...</p>
             </div>
-            <div id="selectProjectsModal" class="modal">
-                <div class="modal-content large">
-                    <span class="close-btn" id="closeSelectProjectsBtn">&times;</span>
-                    <h2>Select Projects to Export</h2>
-                    <div id="projectListContainer" style="max-height: 60vh; overflow-y: auto; padding-right: 15px;">
-                        <ul id="projectSelectionList" style="list-style: none; padding: 0;">
-                            </ul>
-                    </div>
-                    <div style="margin-top: 20px; text-align: right;">
-                        <button id="exportSelectedProjectsBtn" class="btn btn-primary">Export Selected Projects</button>
-                    </div>
-                </div>
+        </div>
+    </div>
+    
+    <div id="importCsvModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" id="closeImportCsvBtn">&times;</span>
+            <h2>📥 Import Projects from CSV</h2>
+            <p>Upload a CSV file. The file should have headers matching the export format.</p>
+            <input type="file" id="csvFileInput" accept=".csv" style="margin-bottom: 15px;">
+            <button id="processCsvBtn" class="btn btn-primary" disabled>Process CSV</button>
+            <div id="csvImportStatus" style="margin-top: 10px; font-size: 0.9em; color: #555;"></div>
+        </div>
+    </div>
+    
+    <div id="selectProjectsModal" class="modal">
+        <div class="modal-content large">
+            <span class="close-btn" id="closeSelectProjectsBtn">&times;</span>
+            <h2>Select Projects to Export</h2>
+            <div id="projectListContainer" style="max-height: 60vh; overflow-y: auto; padding-right: 15px;">
+                <ul id="projectSelectionList" style="list-style: none; padding: 0;"></ul>
             </div>
-            <div id="disputeModal" class="modal">
-                <div class="modal-content">
-                    <span class="close-btn" id="closeDisputeBtn">&times;</span>
-                    <h2>File a Dispute</h2>
-                    <form id="disputeForm">
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                            <div>
-                                <label for="disputeBlockId">Block ID:</label>
-                                <input type="text" id="disputeBlockId" required>
+            <div style="margin-top: 20px; text-align: right;">
+                <button id="exportSelectedProjectsBtn" class="btn btn-primary">Export Selected Projects</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="disputeModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" id="closeDisputeBtn">&times;</span>
+            <h2>File a Dispute</h2>
+            <form id="disputeForm">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div>
+                        <label for="disputeBlockId">Block ID:</label>
+                        <input type="text" id="disputeBlockId" required>
 
-                                <label for="disputeProjectName">Project Name:</label>
-                                <select id="disputeProjectName" required></select>
+                        <label for="disputeProjectName">Project Name:</label>
+                        <select id="disputeProjectName" required></select>
 
-                                <label for="disputePartial">Partial:</label>
-                                <select id="disputePartial" required>
-                                    <option value="">Select Partial</option>
-                                    <option value="Partial 1">Partial 1</option>
-                                    <option value="Partial 2">Partial 2</option>
-                                    <option value="Partial 3">Partial 3</option>
-                                    <option value="Partial 4">Partial 4</option>
-                                    <option value="Partial 5">Partial 5</option>
-                                    <option value="Partial 6">Partial 6</option>
-                                    <option value="Partial 7">Partial 7</option>
-                                    <option value="Partial 8">Partial 8</option>
-                                    <option value="Partial 9">Partial 9</option>
-                                    <option value="Partial 10">Partial 10</option>
-                                </select>
-
-                                <label for="disputePhase">Phase:</label>
-                                <select id="disputePhase" required>
-                                    <option value="">Select Phase</option>
-                                    <option value="Fix2">Fix2</option>
-                                    <option value="Fix3">Fix3</option>
-                                    <option value="Fix4">Fix4</option>
-                                    <option value="Fix5">Fix5</option>
-                                </select>
-
-                                <label for="disputeUid">UID (Initial FP's UID):</label>
-                                <input type="text" id="disputeUid" required>
-                            </div>
-                            <div>
-                                <label for="disputeTechId">Tech ID:</label>
-                                <select id="disputeTechId" required></select>
-
-                                <label for="disputeTechName">Tech Name:</label>
-                                <input type="text" id="disputeTechName" readonly>
-
-                                <label for="disputeTeam">Team:</label>
-                                <select id="disputeTeam" required>
-                                    <option value="">Select Team</option>
-                                    <option value="Team 123">Team 123</option>
-                                    <option value="Team 114">Team 114</option>
-                                    <option value="Team 64">Team 64</option>
-                                </select>
-
-                                <label for="disputeType">Type:</label>
-                                <select id="disputeType" required>
-                                    <option value="">Select Type</option>
-                                    <option value="Incorrect">Incorrect</option>
-                                    <option value="Skip">Skip</option>
-                                    <option value="Change">Change</option>
-                                </select>
-
-                                <label for="disputeCategory">Category:</label>
-                                <select id="disputeCategory" required>
-                                    <option value="">Select Category</option>
-                                    <option value="1">1</option>
-                                    <option value="2">2</option>
-                                    <option value="3">3</option>
-                                    <option value="4">4</option>
-                                    <option value="5">5</option>
-                                    <option value="6">6</option>
-                                    <option value="7">7</option>
-                                    <option value="8">8</option>
-                                    <option value="9">9</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <label for="disputeWarning">Warning:</label>
-                        <select id="disputeWarning" name="warning">
-                            <option value="N/A" selected>N/A</option>
-                            <option value="A">A</option>
-                            <option value="B">B</option>
-                            <option value="C">C</option>
-                            <option value="D">D</option>
-                            <option value="E">E</option>
-                            <option value="F">F</option>
-                            <option value="G">G</option>
+                        <label for="disputePartial">Partial:</label>
+                        <select id="disputePartial" required>
+                            <option value="">Select Partial</option>
+                            <option value="Partial 1">Partial 1</option>
+                            <option value="Partial 2">Partial 2</option>
+                            <option value="Partial 3">Partial 3</option>
+                            <option value="Partial 4">Partial 4</option>
+                            <option value="Partial 5">Partial 5</option>
+                            <option value="Partial 6">Partial 6</option>
+                            <option value="Partial 7">Partial 7</option>
+                            <option value="Partial 8">Partial 8</option>
+                            <option value="Partial 9">Partial 9</option>
+                            <option value="Partial 10">Partial 10</option>
                         </select>
 
-                        <label for="disputeRqaTechId">RQA TechID:</label>
-                        <input type="text" id="disputeRqaTechId">
+                        <label for="disputePhase">Phase:</label>
+                        <select id="disputePhase" required>
+                            <option value="">Select Phase</option>
+                            <option value="Fix2">Fix2</option>
+                            <option value="Fix3">Fix3</option>
+                            <option value="Fix4">Fix4</option>
+                            <option value="Fix5">Fix5</option>
+                        </select>
 
-                        <label for="disputeReason">Detailed Reason for Dispute:</label>
-                        <textarea id="disputeReason" rows="4" required></textarea>
+                        <label for="disputeUid">UID (Initial FP's UID):</label>
+                        <input type="text" id="disputeUid" required>
+                    </div>
+                    <div>
+                        <label for="disputeTechId">Tech ID:</label>
+                        <select id="disputeTechId" required></select>
 
-                        <button type="submit" class="btn btn-success">Save Dispute</button>
-                    </form>
-                    <hr>
-                    <h3>Disputes List</h3>
-                    <div class="table-scroll-wrapper">
-                        <table id="disputeTable">
-                            <thead>
-                                <tr>
-                                    <th>Block ID</th>
-                                    <th>Project Name</th>
-                                    <th>Phase</th>
-                                    <th>Tech ID</th>
-                                    <th>Team</th>
-                                    <th>Type</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="disputeTableBody"></tbody>
-                        </table>
-                        <div id="disputePaginationControls" style="text-align: center; padding: 15px;">
-                            <button id="prevDisputePageBtn" class="btn">« Previous</button>
-                            <span id="disputePageInfo" style="margin: 0 15px; font-weight: bold;"></span>
-                            <button id="nextDisputePageBtn" class="btn">Next »</button>
-                        </div>
+                        <label for="disputeTechName">Tech Name:</label>
+                        <input type="text" id="disputeTechName" readonly>
+
+                        <label for="disputeTeam">Team:</label>
+                        <select id="disputeTeam" required>
+                            <option value="">Select Team</option>
+                            <option value="Team 123">Team 123</option>
+                            <option value="Team 114">Team 114</option>
+                            <option value="Team 64">Team 64</option>
+                        </select>
+
+                        <label for="disputeType">Type:</label>
+                        <select id="disputeType" required>
+                            <option value="">Select Type</option>
+                            <option value="Incorrect">Incorrect</option>
+                            <option value="Skip">Skip</option>
+                            <option value="Change">Change</option>
+                        </select>
+
+                        <label for="disputeCategory">Category:</label>
+                        <select id="disputeCategory" required>
+                            <option value="">Select Category</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                            <option value="6">6</option>
+                            <option value="7">7</option>
+                            <option value="8">8</option>
+                            <option value="9">9</option>
+                        </select>
                     </div>
                 </div>
-            </div>
-            
-            <h3>Project Overview</h3>
-            <div class="group-selector-controls">
-                <label for="monthFilter">Month:</label>
-                <select id="monthFilter">
-                    <option value="">All Months</option>
+
+                <label for="disputeWarning">Warning:</label>
+                <select id="disputeWarning" name="warning">
+                    <option value="N/A" selected>N/A</option>
+                    <option value="A">A</option>
+                    <option value="B">B</option>
+                    <option value="C">C</option>
+                    <option value="D">D</option>
+                    <option value="E">E</option>
+                    <option value="F">F</option>
+                    <option value="G">G</option>
                 </select>
-                <label for="batchIdSelect">Project:</label>
-                <select id="batchIdSelect">
-                    <option value="">All Projects</option>
-                </select>
-                <label for="fixCategoryFilter">Fix Category:</label>
-                <select id="fixCategoryFilter">
-                    <option value="">All</option>
-                    <option value="Fix1">Fix1</option>
-                    <option value="Fix2">Fix2</option>
-                    <option value="Fix3">Fix3</option>
-                    <option value="Fix4">Fix4</option>
-                    <option value="Fix5">Fix5</option>
-                    <option value="Fix6">Fix6</option>
-                </select>
-                <div>
-                    <input type="checkbox" id="toggleDay2Checkbox" checked>
-                    <label for="toggleDay2Checkbox">Show Day 2</label>
-                </div>
-                <div>
-                    <input type="checkbox" id="toggleDay3Checkbox" checked>
-                    <label for="toggleDay3Checkbox">Show Day 3</label>
-                </div>
-                <div>
-                    <input type="checkbox" id="toggleDay4Checkbox">
-                    <label for="toggleDay4Checkbox">Show Day 4</label>
-                </div>
-                 <div>
-                    <input type="checkbox" id="toggleDay5Checkbox">
-                    <label for="toggleDay5Checkbox">Show Day 5</label>
-                </div>
-                 <div>
-                    <input type="checkbox" id="toggleDay6Checkbox">
-                    <label for="toggleDay6Checkbox">Show Day 6</label>
-                </div>
-            </div>
+
+                <label for="disputeRqaTechId">RQA TechID:</label>
+                <input type="text" id="disputeRqaTechId">
+
+                <label for="disputeReason">Detailed Reason for Dispute:</label>
+                <textarea id="disputeReason" rows="4" required></textarea>
+
+                <button type="submit" class="btn btn-success">Save Dispute</button>
+            </form>
+            <hr>
+            <h3>Disputes List</h3>
             <div class="table-scroll-wrapper">
-                <table id="projectTable">
+                <table id="disputeTable">
                     <thead>
                         <tr>
-                            <th>Fix Cat</th>
-                            <th class="column-project-name">Project Name</th>
-                            <th>Area/Task</th>
-                            <th>GSD</th>
-                            <th>Assigned To</th>
+                            <th>Block ID</th>
+                            <th>Project Name</th>
+                            <th>Phase</th>
+                            <th>Tech ID</th>
+                            <th>Team</th>
+                            <th>Type</th>
                             <th>Status</th>
-                            <th>Day 1 Start</th>
-                            <th>Day 1 Finish</th>
-                            <th>Day 1 Break</th>
-                            <th class="column-day2">Day 2 Start</th>
-                            <th class="column-day2">Day 2 Finish</th>
-                            <th class="column-day2">Day 2 Break</th>
-                            <th class="column-day3">Day 3 Start</th>
-                            <th class="column-day3">Day 3 Finish</th>
-                            <th class="column-day3">Day 3 Break</th>
-                            <th class="column-day4">Day 4 Start</th>
-                            <th class="column-day4">Day 4 Finish</th>
-                            <th class="column-day4">Day 4 Break</th>
-                            <th class="column-day5">Day 5 Start</th>
-                            <th class="column-day5">Day 5 Finish</th>
-                            <th class="column-day5">Day 5 Break</th>
-                            <th class="column-day6">Day 6 Start</th>
-                            <th class="column-day6">Day 6 Finish</th>
-                            <th class="column-day6">Day 6 Break</th>
-                            <th>Progress</th>
-                            <th>Total (min)</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
-                    <tbody id="projectTableBody"></tbody>
+                    <tbody id="disputeTableBody"></tbody>
                 </table>
-                <div id="paginationControls" style="display: none; text-align: center; padding: 15px;">
-                    <button id="prevPageBtn" class="btn">« Previous</button>
-                    <span id="pageInfo" style="margin: 0 15px; font-weight: bold;"></span>
-                    <button id="nextPageBtn" class="btn">Next »</button>
+                <div id="disputePaginationControls" style="text-align: center; padding: 15px;">
+                    <button id="prevDisputePageBtn" class="btn">« Previous</button>
+                    <span id="disputePageInfo" style="margin: 0 15px; font-weight: bold;"></span>
+                    <button id="nextDisputePageBtn" class="btn">Next »</button>
                 </div>
             </div>
         </div>
     </div>
+    
     <div id="loadingOverlay">
         <div class="spinner"></div>
         <p>Loading...</p>
     </div>
+
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
