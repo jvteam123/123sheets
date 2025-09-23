@@ -33,6 +33,7 @@
         const dbName = 'LiteTimeTrackerDB';
         const dbVersion = 1;
         const objectStoreName = 'projects';
+        const staticUserId = 'test_user_id_1';
 
         const openDB = () => {
             return new Promise((resolve, reject) => {
@@ -120,6 +121,10 @@
             <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
           </svg>
         );
+        
+        const PauseIcon = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+        );
 
         const PlusIcon = () => (
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinecap="round" strokeLinejoin="round">
@@ -183,8 +188,43 @@
           return `${totalMinutes} mins`;
         };
         
+        const formatMillisecondsToHours = (milliseconds) => {
+            if (milliseconds === null || milliseconds === undefined || isNaN(milliseconds)) {
+                return '0.00';
+            }
+            const totalHours = milliseconds / (1000 * 60 * 60);
+            return totalHours.toFixed(2);
+        };
+
         const FIX_CATEGORIES = {
             ORDER: ["Fix1", "Fix2", "Fix3", "Fix4", "Fix5", "Fix6"],
+        };
+        
+        const getTaskTotalDuration = (project) => {
+            let totalMs = 0;
+            let totalBreaks = 0;
+            for(let i = 1; i <= 6; i++) {
+                totalMs += (project[`durationDay${i}Ms`] || 0);
+                totalBreaks += (project[`breakDurationMinutesDay${i}`] || 0) * 60 * 1000;
+            }
+            return Math.max(0, totalMs - totalBreaks);
+        };
+
+        const getCurrentDay = (project) => {
+            const status = project.status;
+            if (status.startsWith('InProgressDay')) {
+                return parseInt(status.match(/(\d+)/)[1], 10);
+            } else if (status.startsWith('Day') && status.includes('Ended')) {
+                return parseInt(status.match(/(\d+)/)[1], 10);
+            }
+            return 0;
+        };
+
+        const formatTimeForInput = (milliseconds) => {
+            if (!milliseconds) return '';
+            const date = new Date(milliseconds);
+            const pad = (num) => String(num).padStart(2, '0');
+            return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
         };
         
         function App() {
@@ -198,6 +238,8 @@
           const [numNewTasks, setNumNewTasks] = useState(1);
           const [currentModal, setCurrentModal] = useState(null);
           const [modalData, setModalData] = useState({});
+          const [lastActionTime, setLastActionTime] = useState(null);
+          const [editingProjectId, setEditingProjectId] = useState(null);
 
           const fetchProjects = async () => {
               try {
@@ -221,13 +263,12 @@
                           if (event.target.result === 0) {
                               console.log("IndexedDB is empty. Adding a default test project.");
                               const projectsToAdd = [];
-                              const batchId = `test_batch_${Date.now()}`;
                               const projectName = "Test Project";
                               const numTasks = 10;
                               
                               for (let i = 1; i <= numTasks; i++) {
                                 projectsToAdd.push({
-                                    batchId,
+                                    id: Date.now() + Math.random(),
                                     baseProjectName: projectName,
                                     areaTask: `Area${String(i).padStart(2, '0')}`,
                                     fixCategory: "Fix1",
@@ -237,6 +278,15 @@
                                     durationDay1Ms: null,
                                     startTimeDay1: null,
                                     finishTimeDay1: null,
+                                    breakDurationMinutesDay1: 0,
+                                    durationDay2Ms: null,
+                                    startTimeDay2: null,
+                                    finishTimeDay2: null,
+                                    breakDurationMinutesDay2: 0,
+                                    durationDay3Ms: null,
+                                    startTimeDay3: null,
+                                    finishTimeDay3: null,
+                                    breakDurationMinutesDay3: 0,
                                     isLocked: false,
                                     isReassigned: false,
                                     releasedToNextStage: false,
@@ -262,79 +312,78 @@
           // Set up timer logic
           useEffect(() => {
             let interval;
-            if (runningProjectId) {
-              const project = projects.find(p => p.id === runningProjectId);
-              if (project && project.startTimeDay1) {
-                interval = setInterval(() => {
-                  setElapsedTime(Date.now() - project.startTimeDay1);
-                }, 1000);
-              }
+            const currentProject = projects.find(p => p.id === runningProjectId);
+
+            if (currentProject) {
+                const currentDay = getCurrentDay(currentProject);
+                const startTime = currentProject[`startTimeDay${currentDay}`];
+
+                if (startTime && !lastActionTime) {
+                    setLastActionTime(Date.now());
+                }
+
+                if (currentProject.status.startsWith('InProgressDay') && lastActionTime) {
+                    interval = setInterval(() => {
+                        setElapsedTime(Date.now() - lastActionTime);
+                    }, 1000);
+                } else {
+                    setElapsedTime(0);
+                }
             } else {
-              setElapsedTime(0);
+                setElapsedTime(0);
             }
+
             return () => clearInterval(interval);
-          }, [runningProjectId, projects]);
+          }, [runningProjectId, projects, lastActionTime]);
 
-          const handleStartTimer = async () => {
-            if (!selectedTaskId) {
-              console.warn("Cannot start timer: Task not selected.");
-              return;
-            }
+          const handleStartOrEndTimer = async () => {
+            if (runningProjectId) { // End the current day
+              const project = projects.find(p => p.id === runningProjectId);
+              const currentDay = getCurrentDay(project);
+              const dayDurationField = `durationDay${currentDay}Ms`;
+              const dayFinishField = `finishTimeDay${currentDay}`;
+              const nextStatus = project.status.replace('InProgress', 'Ended_AwaitingNext');
 
-            const projectToStart = projects.find(p => p.id == selectedTaskId);
-
-            if (!projectToStart || projectToStart.status !== 'Available') {
-              console.warn("Cannot start timer: Selected project is not available.");
-              return;
-            }
-            
-            // Assuming a static user ID for IndexedDB testing
-            const staticUserId = 'test_user_id_1';
-
-            if (runningProjectId) {
-              const currentRunningTask = projects.find(p => p.id === runningProjectId);
-              await handleStopTimer(currentRunningTask);
-            }
-
-            try {
-              const updatedProject = {
-                  ...projectToStart,
-                  status: 'InProgressDay1',
-                  assignedTo: staticUserId, 
-                  startTimeDay1: Date.now(),
-              };
-              await updateProjectInDB(updatedProject);
-              setRunningProjectId(projectToStart.id);
-              fetchProjects();
-            } catch (error) {
-              console.error("Error starting timer:", error);
-            }
-          };
-
-          const handleStopTimer = async (project) => {
-            if (!project || !project.startTimeDay1) {
-              console.warn("Cannot stop timer: Project or start time is missing.");
-              return;
-            }
-            const staticUserId = 'test_user_id_1';
-
-            try {
               const currentTime = Date.now();
-              const newDurationMs = (project.durationDay1Ms || 0) + (currentTime - project.startTimeDay1);
+              const newDurationMs = (project[dayDurationField] || 0) + (currentTime - lastActionTime);
 
               const updatedProject = {
-                ...project,
-                status: 'Day1Ended_AwaitingNext',
-                finishTimeDay1: currentTime,
-                durationDay1Ms: newDurationMs,
+                  ...project,
+                  status: nextStatus,
+                  [dayDurationField]: newDurationMs,
+                  [dayFinishField]: currentTime,
+                  lastModifiedTimestamp: new Date(),
               };
               await updateProjectInDB(updatedProject);
               setRunningProjectId(null);
-              setSelectedProjectName('');
-              setSelectedTaskId('');
+              setLastActionTime(null);
               fetchProjects();
-            } catch (error) {
-              console.error("Error stopping timer:", error);
+            } else { // Start a new day
+                if (!selectedTaskId) {
+                    console.warn("Cannot start timer: Task not selected.");
+                    return;
+                }
+                const project = projects.find(p => p.id === selectedTaskId);
+                if (!project) return;
+                
+                let nextDay = 1;
+                let nextStatus = 'InProgressDay1';
+                if (project.status.startsWith('Day') && project.status.includes('Ended_AwaitingNext')) {
+                    nextDay = parseInt(project.status.match(/(\d+)/)[1], 10) + 1;
+                    nextStatus = `InProgressDay${nextDay}`;
+                }
+
+                const updatedProject = {
+                    ...project,
+                    status: nextStatus,
+                    [`startTimeDay${nextDay}`]: Date.now(),
+                    assignedTo: staticUserId,
+                    lastModifiedTimestamp: new Date(),
+                };
+                await updateProjectInDB(updatedProject);
+                setRunningProjectId(project.id);
+                setLastActionTime(Date.now());
+                fetchProjects();
             }
           };
 
@@ -344,11 +393,14 @@
 
             try {
               const projectsToAdd = [];
+              const projectName = newProjectName.trim();
+              const batchId = `batch_${Date.now()}`;
 
               for (let i = 1; i <= numNewTasks; i++) {
                 projectsToAdd.push({
-                  batchId: `batch_${Date.now()}`,
-                  baseProjectName: newProjectName.trim(),
+                  id: Date.now() + Math.random(),
+                  batchId,
+                  baseProjectName: projectName,
                   areaTask: `Area${String(i).padStart(2, '0')}`,
                   fixCategory: "Fix1",
                   gsd: "3in",
@@ -357,6 +409,15 @@
                   durationDay1Ms: null,
                   startTimeDay1: null,
                   finishTimeDay1: null,
+                  breakDurationMinutesDay1: 0,
+                  durationDay2Ms: null,
+                  startTimeDay2: null,
+                  finishTimeDay2: null,
+                  breakDurationMinutesDay2: 0,
+                  durationDay3Ms: null,
+                  startTimeDay3: null,
+                  finishTimeDay3: null,
+                  breakDurationMinutesDay3: 0,
                   isLocked: false,
                   isReassigned: false,
                   releasedToNextStage: false,
@@ -382,6 +443,36 @@
                 console.error("Error deleting project:", error);
               }
           };
+          
+          const handleUpdateBreaks = async (projectId, day, value) => {
+              const project = projects.find(p => p.id === projectId);
+              if (!project) return;
+              
+              const updatedProject = {
+                  ...project,
+                  [`breakDurationMinutesDay${day}`]: parseInt(value, 10) || 0,
+              };
+
+              await updateProjectInDB(updatedProject);
+              fetchProjects();
+          };
+          
+          const handleUpdateStartTime = async (projectId, day, value) => {
+              const project = projects.find(p => p.id === projectId);
+              if (!project) return;
+              
+              const [hours, minutes] = value.split(':').map(Number);
+              const newDate = new Date(project[`startTimeDay${day}`] || new Date());
+              newDate.setHours(hours, minutes, 0, 0);
+
+              const updatedProject = {
+                  ...project,
+                  [`startTimeDay${day}`]: newDate.getTime(),
+              };
+
+              await updateProjectInDB(updatedProject);
+              fetchProjects();
+          };
 
           const handleReleaseToNextFix = async (project) => {
             if (!project) return;
@@ -391,21 +482,31 @@
             const nextFixCategory = FIX_CATEGORIES.ORDER[currentFixIndex + 1];
 
             try {
-              const updatedProject = {
+              const newProject = {
+                id: Date.now() + Math.random(),
                 ...project,
                 fixCategory: nextFixCategory,
                 status: "Available",
                 durationDay1Ms: null,
                 startTimeDay1: null,
                 finishTimeDay1: null,
+                durationDay2Ms: null,
+                startTimeDay2: null,
+                finishTimeDay2: null,
+                durationDay3Ms: null,
+                startTimeDay3: null,
+                finishTimeDay3: null,
                 isLocked: false,
                 isReassigned: false,
                 releasedToNextStage: false,
+                breakDurationMinutesDay1: 0,
+                breakDurationMinutesDay2: 0,
+                breakDurationMinutesDay3: 0,
                 creationTimestamp: new Date(),
-                lastModifiedTimestamp: new Date()
+                lastModifiedTimestamp: new Date(),
               };
 
-              await updateProjectInDB(updatedProject);
+              await addProjectsToDB([newProject]);
 
               const originalProject = {
                 ...project,
@@ -436,18 +537,16 @@
             setModalData({});
           };
 
-          const staticUserId = 'test_user_id_1';
-          const runningProject = projects.find(p => p.assignedTo === staticUserId && p.status === 'InProgressDay1');
-          
+          const runningProject = projects.find(p => p.assignedTo === staticUserId && p.status.startsWith('InProgressDay'));
           const uniqueProjectNames = Array.from(new Set(projects.map(p => p.baseProjectName)));
           const availableTasksForSelectedProject = selectedProjectName 
-            ? projects.filter(p => p.baseProjectName === selectedProjectName && p.status === 'Available')
+            ? projects.filter(p => p.baseProjectName === selectedProjectName && p.status.startsWith('Available'))
             : [];
           
           const totalTimePerProject = projects.reduce((acc, project) => {
               const projectName = project.baseProjectName;
               const fixCat = project.fixCategory;
-              const durationMs = project.durationDay1Ms || 0;
+              const durationMs = getTaskTotalDuration(project);
 
               if (!acc[projectName]) {
                   acc[projectName] = {};
@@ -570,13 +669,13 @@
                                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                                       project.status === 'Available' ? 'bg-green-100 text-green-800' :
-                                      project.status === 'InProgressDay1' ? 'bg-yellow-100 text-yellow-800' :
+                                      project.status.startsWith('InProgressDay') ? 'bg-yellow-100 text-yellow-800' :
                                       'bg-slate-100 text-slate-800'
                                     }`}>
                                       {project.status}
                                     </span>
                                   </td>
-                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-400">{formatTotalMinutes(project.durationDay1Ms)}</td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-400">{formatTotalMinutes(getTaskTotalDuration(project))}</td>
                                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
                                     <button
                                       onClick={() => showConfirmationModal('delete', { id: project.id, name: project.baseProjectName })}
@@ -615,17 +714,27 @@
                           Area/Task: {runningProject.areaTask}
                         </p>
                         <div className="text-5xl md:text-6xl font-mono text-green-400 my-4">
-                          {formatDuration(elapsedTime)}
+                            {formatDuration(elapsedTime + (getTaskTotalDuration(runningProject) || 0))}
                         </div>
-                        <p className="text-sm md:text-base text-slate-400 mb-4">
-                          Total Recorded: {formatTotalMinutes(runningProject.durationDay1Ms)}
-                        </p>
-                        <button
-                          onClick={() => handleStopTimer(runningProject)}
-                          className="bg-red-600 text-white p-4 rounded-full flex items-center justify-center shadow-md hover:bg-red-500 transition-colors"
-                        >
-                          <StopIcon className="w-8 h-8" />
-                        </button>
+                        <div className="flex space-x-4 mt-4">
+                          <button
+                                onClick={handleStartOrEndTimer}
+                                className="bg-red-600 text-white p-4 rounded-full flex items-center justify-center shadow-md hover:bg-red-500 transition-colors"
+                                aria-label="End Day"
+                            >
+                                <StopIcon className="w-8 h-8" />
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4 text-left w-full mt-8">
+                            <div className="bg-slate-700 p-4 rounded-xl">
+                                <h3 className="text-sm font-semibold text-indigo-300 mb-1">Day 1 Duration</h3>
+                                <p className="font-mono text-lg">{formatDuration(runningProject.durationDay1Ms)}</p>
+                            </div>
+                            <div className="bg-slate-700 p-4 rounded-xl">
+                                <h3 className="text-sm font-semibold text-indigo-300 mb-1">Total Duration</h3>
+                                <p className="font-mono text-lg">{formatDuration(getTaskTotalDuration(runningProject))}</p>
+                            </div>
+                        </div>
                       </div>
                     ) : (
                       <div className="bg-slate-800 p-6 md:p-8 rounded-2xl shadow-lg border border-slate-700 mb-8">
@@ -668,7 +777,7 @@
                                 </select>
                             </div>
                           <button
-                            onClick={handleStartTimer}
+                            onClick={handleStartOrEndTimer}
                             disabled={!selectedTaskId}
                             className={`bg-indigo-600 text-white p-3 rounded-xl flex items-center justify-center shadow-md transition-colors self-end ${!selectedTaskId ? 'opacity-50 cursor-not-allowed' : 'hover:bg-indigo-500'}`}
                           >
