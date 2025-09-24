@@ -194,9 +194,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 closeSelectProjectsBtn: document.getElementById('closeSelectProjectsBtn'),
                 projectSelectionList: document.getElementById('projectSelectionList'),
                 exportSelectedProjectsBtn: document.getElementById('exportSelectedProjectsBtn'),
-                // MODIFICATION START: Add reference to the new button
                 openNewProjectModalBtn: document.getElementById('openNewProjectModalBtn'),
-                // MODIFICATION END
             };
         },
         injectTechIdHintStyles() {
@@ -326,11 +324,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (self.elements.csvImportStatus) self.elements.csvImportStatus.textContent = '';
                 } else if (pin) alert("Incorrect PIN.");
             });
-            // MODIFICATION START: Add event listener for the new project button
+            
             attachClick(self.elements.openNewProjectModalBtn, () => {
                 self.elements.projectFormModal.style.display = 'block';
             });
-            // MODIFICATION END
+            
             attachClick(self.elements.closeImportCsvBtn, () => {
                 self.elements.importCsvModal.style.display = 'none';
             });
@@ -661,7 +659,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     this.methods.refreshAllViews.call(this);
                 },
                 (error) => {
-                    alert("Error loading projects in real-time: " + error.message);
+                    // MODIFICATION START: Changed alert to console.error for clickable link
+                    console.error("Error loading projects in real-time: ", error);
+                    alert("Error loading projects. Check the console (F12) for a link to create a required database index.");
+                    // MODIFICATION END
                     this.methods.hideLoading.call(this);
                 }
             );
@@ -766,7 +767,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.state.filters.month = "";
                 localStorage.setItem('currentSelectedMonth', "");
                 this.state.filters.fixCategory = "";
+        
+                // This line refreshes the data view
                 this.methods.initializeFirebaseAndLoadData.call(this);
+        
             } catch (error) {
                 alert("Error adding projects: " + error.message);
             } finally {
