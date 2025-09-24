@@ -559,7 +559,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
             }
         },
-        // MODIFICATION START: Replaced the entire function with a more robust version
         async initializeFirebaseAndLoadData() {
             this.methods.showLoading.call(this, "Loading projects...");
             if (!this.db || !this.elements.paginationControls) {
@@ -671,7 +670,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.methods.hideLoading.call(this);
             }
         },
-        // MODIFICATION END
         async populateMonthFilter() {
             try {
                 const snapshot = await this.db.collection("projects").orderBy("creationTimestamp", "desc").get();
@@ -906,20 +904,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.methods.hideLoading.call(this);
             }
         },
-        // In script.js, replace your existing refreshAllViews function with this one.
-
-refreshAllViews() {
-    try {
-        this.methods.renderProjects.call(this);
-        this.methods.updatePaginationUI.call(this);
-        this.methods.applyColumnVisibility.call(this);
-    } catch (error) {
-        // MODIFICATION: Added console.error to reveal the hidden error
-        console.error("Error rendering projects:", error);
-        if (this.elements.projectTableBody) this.elements.projectTableBody.innerHTML = `<tr><td colspan="${this.config.NUM_TABLE_COLUMNS}" style="color:red;text-align:center;">Error loading projects.</td></tr>`;
-    }
-    this.methods.hideLoading.call(this);
-},
+        refreshAllViews() {
+            try {
+                this.methods.renderProjects.call(this);
+                this.methods.updatePaginationUI.call(this);
+                this.methods.applyColumnVisibility.call(this);
+            } catch (error) {
+                console.error("Error rendering projects:", error);
+                if (this.elements.projectTableBody) this.elements.projectTableBody.innerHTML = `<tr><td colspan="${this.config.NUM_TABLE_COLUMNS}" style="color:red;text-align:center;">Error loading projects.</td></tr>`;
+            }
+            this.methods.hideLoading.call(this);
+        },
         updatePaginationUI() {
             if (!this.elements.paginationControls || this.elements.paginationControls.style.display === 'none') {
                 return;
@@ -948,6 +943,7 @@ refreshAllViews() {
         renderProjects() {
             if (!this.elements.projectTableBody) return;
             this.elements.projectTableBody.innerHTML = "";
+            // MODIFICATION START: Made sorting safer to prevent crashes
             const sortedProjects = [...this.state.projects].sort((a, b) => {
                 const nameA = a.baseProjectName || "";
                 const nameB = b.baseProjectName || "";
@@ -963,6 +959,7 @@ refreshAllViews() {
                 if (areaA > areaB) return 1;
                 return 0;
             });
+            // MODIFICATION END
             const groupLockStatus = {};
             sortedProjects.forEach(p => {
                 const groupKey = `${p.baseProjectName}_${p.fixCategory}`;
