@@ -906,16 +906,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.methods.hideLoading.call(this);
             }
         },
-        refreshAllViews() {
-            try {
-                this.methods.renderProjects.call(this);
-                this.methods.updatePaginationUI.call(this);
-                this.methods.applyColumnVisibility.call(this);
-            } catch (error) {
-                if (this.elements.projectTableBody) this.elements.projectTableBody.innerHTML = `<tr><td colspan="${this.config.NUM_TABLE_COLUMNS}" style="color:red;text-align:center;">Error loading projects.</td></tr>`;
-            }
-            this.methods.hideLoading.call(this);
-        },
+        // In script.js, replace your existing refreshAllViews function with this one.
+
+refreshAllViews() {
+    try {
+        this.methods.renderProjects.call(this);
+        this.methods.updatePaginationUI.call(this);
+        this.methods.applyColumnVisibility.call(this);
+    } catch (error) {
+        // MODIFICATION: Added console.error to reveal the hidden error
+        console.error("Error rendering projects:", error);
+        if (this.elements.projectTableBody) this.elements.projectTableBody.innerHTML = `<tr><td colspan="${this.config.NUM_TABLE_COLUMNS}" style="color:red;text-align:center;">Error loading projects.</td></tr>`;
+    }
+    this.methods.hideLoading.call(this);
+},
         updatePaginationUI() {
             if (!this.elements.paginationControls || this.elements.paginationControls.style.display === 'none') {
                 return;
