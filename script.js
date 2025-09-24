@@ -559,113 +559,122 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
             }
         },
-        async initializeFirebaseAndLoadData() {
-            this.methods.showLoading.call(this, "Loading projects...");
-            if (!this.db || !this.elements.paginationControls) {
-                this.methods.hideLoading.call(this);
-                return;
+        // In script.js, replace the entire initializeFirebaseAndLoadData function with this one.
+
+async initializeFirebaseAndLoadData() {
+    this.methods.showLoading.call(this, "Loading projects...");
+    if (!this.db || !this.elements.paginationControls) {
+        this.methods.hideLoading.call(this);
+        return;
+    }
+    if (this.projectsListenerUnsubscribe) {
+        this.projectsListenerUnsubscribe();
+    }
+    this.state.projects = [];
+    this.methods.loadGroupVisibilityState.call(this);
+    await this.methods.populateMonthFilter.call(this);
+    this.methods.showLoading.call(this, "Building project list...");
+
+    try { // MODIFICATION: Added try...catch block to catch all errors
+
+        const allTasksSnapshot = await this.db.collection("projects").get();
+        const uniqueNames = new Set();
+        allTasksSnapshot.forEach(doc => {
+            const name = doc.data().baseProjectName;
+            if (name) {
+                uniqueNames.add(name);
             }
-            if (this.projectsListenerUnsubscribe) {
-                this.projectsListenerUnsubscribe();
+        });
+
+        // Sort the names alphabetically after collecting them
+        this.state.allUniqueProjectNames = Array.from(uniqueNames).sort();
+        this.state.pagination.paginatedProjectNameList = this.state.allUniqueProjectNames;
+
+        await this.methods.populateProjectNameFilter.call(this);
+        const shouldPaginate = !this.state.filters.batchId && !this.state.filters.fixCategory;
+        let projectsQuery = this.db.collection("projects");
+        if (shouldPaginate) {
+            this.elements.paginationControls.style.display = 'block';
+            this.state.pagination.totalPages = Math.ceil(this.state.pagination.paginatedProjectNameList.length / this.state.pagination.projectsPerPage);
+            const startIndex = (this.state.pagination.currentPage - 1) * this.state.pagination.projectsPerPage;
+            const endIndex = startIndex + this.state.pagination.projectsPerPage;
+            const projectsToDisplay = this.state.pagination.paginatedProjectNameList.slice(startIndex, endIndex);
+            if (projectsToDisplay.length > 0) {
+                projectsQuery = projectsQuery.where("baseProjectName", "in", projectsToDisplay);
+            } else {
+                projectsQuery = projectsQuery.where("baseProjectName", "==", "no-projects-exist-yet-dummy-value");
             }
-            this.state.projects = [];
-            this.methods.loadGroupVisibilityState.call(this);
-            await this.methods.populateMonthFilter.call(this);
-            this.methods.showLoading.call(this, "Building project list...");
-            const sortDirection = this.state.filters.sortBy === 'oldest' ? 'asc' : 'desc';
-            let nameQuery = this.db.collection("projects");
+        } else {
+            this.elements.paginationControls.style.display = 'none';
             if (this.state.filters.month) {
                 const [year, month] = this.state.filters.month.split('-');
                 const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
                 const endDate = new Date(parseInt(year), parseInt(month), 0, 23, 59, 59, 999);
-                nameQuery = nameQuery.where("creationTimestamp", ">=", startDate).where("creationTimestamp", "<=", endDate);
+                projectsQuery = projectsQuery.where("creationTimestamp", ">=", startDate).where("creationTimestamp", "<=", endDate);
             }
-            const allTasksSnapshot = await nameQuery.orderBy("creationTimestamp", sortDirection).get();
-            const uniqueNames = new Set();
-            const sortedNames = [];
-            allTasksSnapshot.forEach(doc => {
-                const name = doc.data().baseProjectName;
-                if (name && !uniqueNames.has(name)) {
-                    uniqueNames.add(name);
-                    sortedNames.push(name);
-                }
-            });
-            this.state.allUniqueProjectNames = sortedNames;
-            this.state.pagination.paginatedProjectNameList = sortedNames;
-            await this.methods.populateProjectNameFilter.call(this);
-            const shouldPaginate = !this.state.filters.batchId && !this.state.filters.fixCategory;
-            let projectsQuery = this.db.collection("projects");
-            if (shouldPaginate) {
-                this.elements.paginationControls.style.display = 'block';
-                this.state.pagination.totalPages = Math.ceil(this.state.pagination.paginatedProjectNameList.length / this.state.pagination.projectsPerPage);
-                const startIndex = (this.state.pagination.currentPage - 1) * this.state.pagination.projectsPerPage;
-                const endIndex = startIndex + this.state.pagination.projectsPerPage;
-                const projectsToDisplay = this.state.pagination.paginatedProjectNameList.slice(startIndex, endIndex);
-                if (projectsToDisplay.length > 0) {
-                    projectsQuery = projectsQuery.where("baseProjectName", "in", projectsToDisplay);
-                } else {
-                    projectsQuery = projectsQuery.where("baseProjectName", "==", "no-projects-exist-yet-dummy-value");
-                }
-            } else {
-                this.elements.paginationControls.style.display = 'none';
-                if (this.state.filters.month) {
-                    const [year, month] = this.state.filters.month.split('-');
-                    const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
-                    const endDate = new Date(parseInt(year), parseInt(month), 0, 23, 59, 59, 999);
-                    projectsQuery = projectsQuery.where("creationTimestamp", ">=", startDate).where("creationTimestamp", "<=", endDate);
-                }
-                if (this.state.filters.batchId) {
-                    projectsQuery = projectsQuery.where("baseProjectName", "==", this.state.filters.batchId);
-                }
-                if (this.state.filters.fixCategory) {
-                    projectsQuery = projectsQuery.where("fixCategory", "==", this.state.filters.fixCategory);
-                }
+            if (this.state.filters.batchId) {
+                projectsQuery = projectsQuery.where("baseProjectName", "==", this.state.filters.batchId);
             }
-            this.projectsListenerUnsubscribe = projectsQuery.onSnapshot(
-                (snapshot) => {
-                    snapshot.docChanges().forEach((change) => {
-                        const projectData = {
-                            id: change.doc.id,
-                            ...change.doc.data()
-                        };
-                        const fullProjectData = {
-                            ...projectData,
-                            breakDurationMinutesDay1: projectData.breakDurationMinutesDay1 || 0,
-                            breakDurationMinutesDay2: projectData.breakDurationMinutesDay2 || 0,
-                            breakDurationMinutesDay3: projectData.breakDurationMinutesDay3 || 0,
-                            breakDurationMinutesDay4: projectData.breakDurationMinutesDay4 || 0,
-                            breakDurationMinutesDay5: projectData.breakDurationMinutesDay5 || 0,
-                            breakDurationMinutesDay6: projectData.breakDurationMinutesDay6 || 0,
-                            additionalMinutesManual: projectData.additionalMinutesManual || 0,
-                            isLocked: projectData.isLocked || false,
-                        };
-                        const index = this.state.projects.findIndex(p => p.id === change.doc.id);
-                        if (change.type === "added") {
-                            if (index === -1) {
-                                this.state.projects.push(fullProjectData);
-                            }
+            if (this.state.filters.fixCategory) {
+                projectsQuery = projectsQuery.where("fixCategory", "==", this.state.filters.fixCategory);
+            }
+        }
+
+        // Apply sorting to the final query
+        const sortDirection = this.state.filters.sortBy === 'oldest' ? 'asc' : 'desc';
+        projectsQuery = projectsQuery.orderBy("creationTimestamp", sortDirection);
+
+
+        this.projectsListenerUnsubscribe = projectsQuery.onSnapshot(
+            (snapshot) => {
+                snapshot.docChanges().forEach((change) => {
+                    const projectData = {
+                        id: change.doc.id,
+                        ...change.doc.data()
+                    };
+                    const fullProjectData = {
+                        ...projectData,
+                        breakDurationMinutesDay1: projectData.breakDurationMinutesDay1 || 0,
+                        breakDurationMinutesDay2: projectData.breakDurationMinutesDay2 || 0,
+                        breakDurationMinutesDay3: projectData.breakDurationMinutesDay3 || 0,
+                        breakDurationMinutesDay4: projectData.breakDurationMinutesDay4 || 0,
+                        breakDurationMinutesDay5: projectData.breakDurationMinutesDay5 || 0,
+                        breakDurationMinutesDay6: projectData.breakDurationMinutesDay6 || 0,
+                        additionalMinutesManual: projectData.additionalMinutesManual || 0,
+                        isLocked: projectData.isLocked || false,
+                    };
+                    const index = this.state.projects.findIndex(p => p.id === change.doc.id);
+                    if (change.type === "added") {
+                        if (index === -1) {
+                            this.state.projects.push(fullProjectData);
                         }
-                        if (change.type === "modified") {
-                            if (index > -1) {
-                                this.state.projects[index] = fullProjectData;
-                            }
+                    }
+                    if (change.type === "modified") {
+                        if (index > -1) {
+                            this.state.projects[index] = fullProjectData;
                         }
-                        if (change.type === "removed") {
-                            if (index > -1) {
-                                this.state.projects.splice(index, 1);
-                            }
+                    }
+                    if (change.type === "removed") {
+                        if (index > -1) {
+                            this.state.projects.splice(index, 1);
                         }
-                    });
-                    this.methods.refreshAllViews.call(this);
-                },
-                (error) => {
-                    // MODIFICATION START: Changed alert to console.error for clickable link
-                    console.error("Error loading projects in real-time: ", error);
-                    alert("Error loading projects. Check the console (F12) for a link to create a required database index.");
-                    // MODIFICATION END
-                    this.methods.hideLoading.call(this);
-                }
-            );
+                    }
+                });
+                this.methods.refreshAllViews.call(this);
+            },
+            (error) => {
+                console.error("Error loading projects in real-time: ", error);
+                alert("Error loading projects. Check the console (F12) for a link to create a required database index.");
+                this.methods.hideLoading.call(this);
+            }
+        );
+
+    } catch (error) { // MODIFICATION: Catch block for the new try...catch
+        console.error("Failed to build project list or query: ", error);
+        alert("An error occurred while preparing the project list. Check the console (F12) for details and a possible link to create a database index.");
+        this.methods.hideLoading.call(this);
+    }
+}
         },
         async populateMonthFilter() {
             try {
