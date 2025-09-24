@@ -194,6 +194,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 closeSelectProjectsBtn: document.getElementById('closeSelectProjectsBtn'),
                 projectSelectionList: document.getElementById('projectSelectionList'),
                 exportSelectedProjectsBtn: document.getElementById('exportSelectedProjectsBtn'),
+                // MODIFICATION START: Add reference to the new button
+                openNewProjectModalBtn: document.getElementById('openNewProjectModalBtn'),
+                // MODIFICATION END
             };
         },
         injectTechIdHintStyles() {
@@ -323,6 +326,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (self.elements.csvImportStatus) self.elements.csvImportStatus.textContent = '';
                 } else if (pin) alert("Incorrect PIN.");
             });
+            // MODIFICATION START: Add event listener for the new project button
+            attachClick(self.elements.openNewProjectModalBtn, () => {
+                self.elements.projectFormModal.style.display = 'block';
+            });
+            // MODIFICATION END
             attachClick(self.elements.closeImportCsvBtn, () => {
                 self.elements.importCsvModal.style.display = 'none';
             });
