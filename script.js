@@ -943,7 +943,6 @@ document.addEventListener('DOMContentLoaded', () => {
         renderProjects() {
             if (!this.elements.projectTableBody) return;
             this.elements.projectTableBody.innerHTML = "";
-            // MODIFICATION START: Made sorting safer to prevent crashes
             const sortedProjects = [...this.state.projects].sort((a, b) => {
                 const nameA = a.baseProjectName || "";
                 const nameB = b.baseProjectName || "";
@@ -959,7 +958,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (areaA > areaB) return 1;
                 return 0;
             });
-            // MODIFICATION END
             const groupLockStatus = {};
             sortedProjects.forEach(p => {
                 const groupKey = `${p.baseProjectName}_${p.fixCategory}`;
@@ -1038,9 +1036,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 assignedToSelect.className = 'assigned-to-select';
                 assignedToSelect.disabled = project.status === "Reassigned_TechAbsent" || project.isLocked;
                 let optionsHtml = '<option value="">Select Tech ID</option>';
-                this.state.users.sort((a, b) => a.techId.localeCompare(b.techId)).forEach(user => {
+                
+                // MODIFICATION START: Made user sorting safer
+                this.state.users.sort((a, b) => (a.techId || "").localeCompare(b.techId || "")).forEach(user => {
                     optionsHtml += `<option value="${user.techId}" title="${user.name}">${user.techId}</option>`;
                 });
+                // MODIFICATION END
+
                 assignedToSelect.innerHTML = optionsHtml;
                 assignedToSelect.value = project.assignedTo || "";
                 assignedToSelect.onchange = (e) => this.db.collection("projects").doc(project.id).update({
