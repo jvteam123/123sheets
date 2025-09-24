@@ -766,6 +766,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.state.filters.month = "";
                 localStorage.setItem('currentSelectedMonth', "");
                 this.state.filters.fixCategory = "";
+                this.methods.initializeFirebaseAndLoadData.call(this);
             } catch (error) {
                 alert("Error adding projects: " + error.message);
             } finally {
