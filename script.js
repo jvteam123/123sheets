@@ -469,7 +469,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const authorizedUser = this.state.users.find(u => u.email.toLowerCase() === userEmailLower);
                 if (authorizedUser) {
                     this.state.currentUserTechId = authorizedUser.techId;
-                    this.methods.handleAuthorizedUser.call(this, user);
+                    this.methods..call(this, user);
                 } else {
                     alert("Access Denied: Your email address is not authorized for this application.");
                     this.auth.signOut();
@@ -497,34 +497,40 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         },
+        // ... (previous code remains the same)
+
         async handleAuthorizedUser(user) {
-    if (this.elements.body) this.elements.body.classList.remove('login-view-active');
-    if (this.elements.authWrapper) this.elements.authWrapper.style.display = 'none';
-    if (this.elements.mainContainer) this.elements.mainContainer.style.display = 'flex';
-    if (this.elements.userNameP) this.elements.userNameP.textContent = user.displayName || "N/A";
-    if (this.elements.userEmailP) this.elements.userEmailP.textContent = user.email || "N/A";
-    if (this.elements.userPhotoImg) this.elements.userPhotoImg.src = user.photoURL || 'default-user.png';
-    if (this.elements.userInfoDisplayDiv) {
-        this.elements.userInfoDisplayDiv.style.display = 'flex';
-    }
-    if (this.elements.clearDataBtn) this.elements.clearDataBtn.style.display = 'none';
-    if (this.elements.appContentDiv) {
-        this.elements.appContentDiv.style.display = 'flex';
-    }
-    if (this.elements.loadingAuthMessageDiv) this.elements.loadingAuthMessageDiv.style.display = 'none';
-    if (!this.state.isAppInitialized) {
-        this.methods.listenForAppConfigChanges.call(this);
-        this.methods.initializeFirebaseAndLoadData.call(this);
-        this.state.isAppInitialized = true;
-        this.methods.listenForNotifications.call(this);
-        this.methods.checkForNewDisputes.call(this);
-    }
-},
+            if (this.elements.body) this.elements.body.classList.remove('login-view-active');
+            if (this.elements.authWrapper) this.elements.authWrapper.style.display = 'none';
+            if (this.elements.mainContainer) this.elements.mainContainer.style.display = 'flex';
+            if (this.elements.userNameP) this.elements.userNameP.textContent = user.displayName || "N/A";
+            if (this.elements.userEmailP) this.elements.userEmailP.textContent = user.email || "N/A";
+            if (this.elements.userPhotoImg) this.elements.userPhotoImg.src = user.photoURL || 'default-user.png';
+            if (this.elements.userInfoDisplayDiv) {
+                this.elements.userInfoDisplayDiv.style.display = 'flex';
+            }
+            if (this.elements.signOutBtn) this.elements.signOutBtn.style.display = 'block';
+            if (this.elements.clearDataBtn) this.elements.clearDataBtn.style.display = 'none';
+            if (this.elements.appContentDiv) {
+                this.elements.appContentDiv.style.display = 'flex';
+            }
+            if (this.elements.loadingAuthMessageDiv) this.elements.loadingAuthMessageDiv.style.display = 'none';
+
+            if (!this.state.isAppInitialized) {
+                this.methods.listenForAppConfigChanges.call(this);
+                this.methods.initializeFirebaseAndLoadData.call(this);
+                this.state.isAppInitialized = true;
+                this.methods.listenForNotifications.call(this);
+                this.methods.checkForNewDisputes.call(this);
+            }
+            this.methods.hideLoading.call(this); // Always hide loading overlay for authorized users
+        },
         handleSignedOutUser() {
             if (this.elements.body) this.elements.body.classList.add('login-view-active');
             if (this.elements.authWrapper) this.elements.authWrapper.style.display = 'block';
             if (this.elements.mainContainer) this.elements.mainContainer.style.display = 'none';
             if (this.elements.userInfoDisplayDiv) this.elements.userInfoDisplayDiv.style.display = 'none';
+            if (this.elements.signOutBtn) this.elements.signOutBtn.style.display = 'none';
             if (this.elements.clearDataBtn) this.elements.clearDataBtn.style.display = 'block';
             if (this.elements.appContentDiv) this.elements.appContentDiv.style.display = 'none';
             if (this.elements.loadingAuthMessageDiv) {
@@ -536,7 +542,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (this.disputesListenerUnsubscribe) this.disputesListenerUnsubscribe();
             if (this.appConfigListenerUnsubscribe) this.appConfigListenerUnsubscribe();
             this.state.isAppInitialized = false;
+            this.methods.hideLoading.call(this); // Always hide loading overlay for signed-out users
         },
+
+// ... (rest of the code remains the same)
         setupAuthActions() {
             const provider = new firebase.auth.GoogleAuthProvider();
             provider.addScope('email');
