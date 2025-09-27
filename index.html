@@ -1,816 +1,154 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Team123 - Project Tracker V2</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <style>
-        :root {
-            --primary-color: #3498db;
-            --secondary-color: #6c757d;
-            --success-color: #2ecc71;
-            --warning-color: #f39c12;
-            --danger-color: #e74c3c;
-            --info-color: #8e44ad; /* Purple for Started Available */
-            --bg-color: #f0f2f5;
-            --card-bg-color: #ffffff;
-            --text-color: #2c3e50;
-            --border-color: #e0e0e0;
-            --shadow-light: 0 2px 5px rgba(0,0,0,0.05);
-            --border-radius-md: 8px;
-            --border-radius-lg: 12px;
-            /* Fix Stage Colors */
-            --fix-color-1: #eaf6ff;
-            --fix-color-2: #eafaf1;
-            --fix-color-3: #fff8e1;
-            --fix-color-4: #fbe9e7;
-            --fix-color-5: #f3e5f5;
-        }
-        html, body {
-            height: 100%;
-            margin: 0;
-            overflow: hidden;
-        }
-        body {
-            font-family: 'Inter', Arial, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            line-height: 1.6;
-        }
-        body.login-view-active {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-        }
-        .dashboard-wrapper { display: flex; height: 100vh; width: 100%; }
-        .sidebar { width: 250px; background-color: var(--text-color); color: #ecf0f1; padding: 20px; display: flex; flex-direction: column; border-right: 1px solid #475569; flex-shrink: 0; }
-        .sidebar-header { text-align: center; margin-bottom: 20px; position: relative; }
-        .sidebar-header h2 { color: #fff; margin-top: 0; margin-bottom: 5px; font-size: 1.5em; }
-        .sidebar-header #loggedInUser { color: #bdc3c7; font-size: 0.9em; }
-        .sidebar-nav button, .sidebar-nav a.btn-extra { display: flex; align-items: center; width: 100%; padding: 12px 15px; margin-bottom: 10px; background-color: transparent; border: none; color: #ecf0f1; font-size: 1.1em; cursor: pointer; border-radius: var(--border-radius-md); transition: background-color: 0.3s ease; text-align: left; gap: 12px; text-decoration: none; }
-        .sidebar-nav button:hover, .sidebar-nav button.active, .sidebar-nav a.btn-extra:hover { background-color: #475569; }
-        .sidebar-nav button .icon, .sidebar-nav a.btn-extra .icon { font-size: 1.2em; }
-        .main-content { flex-grow: 1; padding: 25px; display: flex; flex-direction: column; overflow: auto; }
-        .btn { padding: 8px 16px; border: none; border-radius: var(--border-radius-md); cursor: pointer; font-size: 1em; font-weight: 500; }
-        .btn:disabled { background-color: #bdc3c7; cursor: not-allowed; }
-        .btn-primary { background-color: var(--primary-color); color: white; }
-        .btn-success { background-color: var(--success-color); color: white; }
-        .btn-warning { background-color: var(--warning-color); color: white; }
-        .btn-danger { background-color: var(--danger-color); color: white; }
-        .btn-secondary { background-color: var(--secondary-color); color: white; }
-
-
-        .filter-section {
-            background-color: var(--card-bg-color);
-            border-radius: var(--border-radius-md);
-            border: 1px solid var(--border-color);
-            box-shadow: var(--shadow-light);
-            padding: 15px 20px;
-            margin-bottom: 20px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            align-items: center;
-            position: relative;
-        }
-        .filter-group {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .filter-group label {
-            font-weight: 500;
-            color: var(--text-color);
-            font-size: 0.95em;
-        }
-        .filter-group select,
-        .filter-group input[type="checkbox"] + label {
-            padding: 8px 10px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            background-color: #fff;
-            font-size: 0.9em;
-            cursor: pointer;
-            min-width: 120px;
-        }
-        .filter-group input[type="checkbox"] {
-            position: absolute;
-            opacity: 0;
-            cursor: pointer;
-            height: 0;
-            width: 0;
-        }
-        .filter-group input[type="checkbox"] + label {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            background-color: #f0f0f0;
-            color: #333;
-            border: 1px solid #ddd;
-            padding: 8px 12px;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color: 0.2s, border-color: 0.2s;
-            min-width: unset;
-        }
-        .filter-group input[type="checkbox"] + label:hover {
-            background-color: #e0e0e0;
-        }
-        .filter-group input[type="checkbox"]:checked + label {
-            background-color: var(--primary-color);
-            color: white;
-            border-color: var(--primary-color);
-        }
-
-        #techDashboardContainer { display: flex; flex-direction: column; flex-grow: 1; overflow: hidden; }
-        .table-container { background-color: var(--card-bg-color); border-radius: var(--border-radius-md); border: 1px solid var(--border-color); box-shadow: var(--shadow-light); padding: 20px; flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; }
-        .table-scroll-wrapper { width: 100%; flex-grow: 1; overflow: auto; }
-        .project-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.9em; }
-        .project-table th, .project-table td { padding: 12px 10px; white-space: nowrap; border-bottom: 1px solid var(--border-color); border-right: 1px solid var(--border-color); }
-        .project-table th { background-color: #f8f9fa; font-weight: 600; text-align: left; position: sticky; top: 0; z-index: 10; }
-        .project-table td:first-child, .project-table th:first-child { border-left: 1px solid var(--border-color); }
-        .summary-project-header td { background-color: #e9ecef; font-weight: 600; }
-        .summary-stage-row td:first-child { padding-left: 30px; }
-
-
-        /* Status Colors */
-        .status { padding: 4px 8px; border-radius: 4px; font-weight: 500; color: #fff; text-transform: capitalize; }
-        .status-available { background-color: var(--secondary-color); }
-        .status-inprogress, .status-inprogressday1, .status-inprogressday2, .status-inprogressday3, .status-inprogressday4, .status-inprogressday5 { background-color: var(--warning-color); }
-        .status-completed { background-color: var(--success-color); }
-        .status-startedavailable { background-color: var(--info-color); }
-        .status-open { background-color: var(--warning-color); }
-        .status-done { background-color: var(--success-color); }
-
-        .total-minutes-cell { background-color: #ffedd5; font-weight: 600; }
-        .time-cell .edit-icon { margin-left: 8px; cursor: pointer; color: var(--secondary-color); }
-        .time-cell .edit-icon:hover { color: var(--primary-color); }
-        .actions-btn-group { display: flex; gap: 5px; }
-
-        /* Highlighting Styles */
-        tr.fix-stage-1 { background-color: var(--fix-color-1); }
-        tr.fix-stage-2 { background-color: var(--fix-color-2); }
-        tr.fix-stage-3 { background-color: var(--fix-color-3); }
-        tr.fix-stage-4 { background-color: var(--fix-color-4); }
-        tr.fix-stage-5 { background-color: var(--fix-color-5); }
-        tr.fix-stage-1:hover, tr.fix-stage-2:hover, tr.fix-stage-3:hover, tr.fix-stage-4:hover, tr.fix-stage-5:hover {
-             background-color: #d1eaff; /* A common hover color */
-        }
-        .project-separator-row td {
-            border-bottom: 2px solid #333;
-            padding: 5px 0 !important;
-            background-color: #f0f2f5;
-        }
-        .fix-separator-row td {
-            border-bottom: 1px dashed #ccc;
-            padding: 3px 0 !important;
-            background-color: #f0f2f5;
-        }
-
-
-        #auth-wrapper { max-width: 420px; width: 100%; text-align: center; background-color: white; padding: 40px 50px; border-radius: var(--border-radius-lg); box-shadow: var(--shadow-light); }
-        .modal { 
-            display: none; 
-            position: fixed; 
-            z-index: 1000; 
-            left: 0; top: 0; 
-            width: 100%; height: 100%; 
-            overflow: auto; 
-            background-color: rgba(0,0,0,0.6); 
-        }
-        .modal.is-open {
-             /* Flexbox for centering */
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        .modal-content { 
-            background-color: var(--card-bg-color); 
-            margin: auto; /* Important for centering */
-            padding: 25px; 
-            border-radius: var(--border-radius-lg); 
-            width: 90%; 
-            max-width: 600px; 
-            position: relative; 
-        }
-        .modal-content.modal-lg {
-            max-width: 95%;
-        }
-        .modal-content input, .modal-content select { width: 100%; padding: 8px; margin-bottom: 10px; box-sizing: border-box; }
-        .time-edit-group { display: flex; gap: 10px; align-items: center; }
-        .time-edit-group input { flex-grow: 1; }
-        .time-edit-group select { width: 80px; }
-        .close-btn { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
-        
-        /* Loading Spinner */
-        #loadingOverlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(0,0,0,0.7); color: white;
-            z-index: 1001;
-            display: none; 
-            justify-content: center;
-            align-items: center; flex-direction: column;
-            font-size: 1.2em;
-        }
-         #loadingOverlay.is-open {
-            display: flex;
-        }
-        .spinner {
-            width: 50px; height: 50px;
-            border: 5px solid rgba(255, 255, 255, 0.3);
-            border-top-color: #fff;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 20px;
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-
-        /* Project Settings & Summary UI */
-        .settings-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px;
-        }
-        .project-settings-card, .summary-card {
-            background: #fff;
-            border-radius: var(--border-radius-lg);
-            padding: 20px;
-            box-shadow: var(--shadow-light);
-            border: 1px solid var(--border-color);
-            margin-bottom: 20px;
-        }
-        .project-settings-card h2, .summary-card h2 {
-            margin-top: 0;
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 10px;
-            margin-bottom: 15px;
-        }
-        .settings-card {
-            background-color: #f9f9f9;
-            padding: 15px;
-            border-radius: var(--border-radius-md);
-            border: 1px solid #eee;
-        }
-        .settings-card h3 { margin-top: 0; font-size: 1.1em; color: var(--primary-color); }
-        .btn-group { display: flex; flex-wrap: wrap; gap: 10px; }
-        .user-actions .btn { margin-right: 10px; }
-
-        .progress-bar {
-            width: 100%;
-            background-color: #e0e0e0;
-            border-radius: 5px;
-            overflow: hidden;
-            height: 20px;
-        }
-        .progress-bar-fill {
-            height: 100%;
-            background-color: var(--success-color);
-            text-align: center;
-            line-height: 20px;
-            color: white;
-            transition: width 0.3s ease;
-        }
-        /* Dispute Form */
-        #disputeView { display: none; }
-        .dispute-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .dispute-form-group { display: flex; flex-direction: column; }
-        .dispute-form-group label { margin-bottom: 5px; font-weight: 500; }
-        .dispute-form-group input, .dispute-form-group select, .dispute-form-group textarea {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            box-sizing: border-box;
-        }
-        .dispute-form-group textarea { resize: vertical; min-height: 80px; }
-        .disputes-list-container { margin-top: 30px; }
-        
-        /* SCROLL FIX FOR DISPUTE VIEW */
-        #disputeView.table-container {
-            display: block;
-            overflow-y: auto;
-        }
-
-        /* Dispute Details Modal */
-        #disputeDetailsContent .detail-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 5px;
-            border-bottom: 1px solid #f0f0f0;
-            gap: 15px;
-        }
-        #disputeDetailsContent .detail-row:last-child {
-            border-bottom: none;
-        }
-        #disputeDetailsContent .detail-label {
-            font-weight: 600;
-            color: #555;
-            flex-shrink: 0;
-        }
-        #disputeDetailsContent .detail-value {
-            text-align: right;
-            color: #333;
-            word-break: break-all;
-            user-select: text; /* Make text selectable */
-        }
-        #disputeDetailsContent .copy-icon {
-            cursor: pointer;
-            color: var(--secondary-color);
-            margin-left: 8px;
-            transition: color 0.2s;
-        }
-        #disputeDetailsContent .copy-icon:hover {
-            color: var(--primary-color);
-        }
-        #disputeDetailsContent .copy-icon.copied {
-            color: var(--success-color);
-        }
-        
-        /* Notification Modal & Bell*/
-        #notificationModal .modal-content { max-width: 400px; padding: 20px; text-align: center; }
-        #notificationModal .modal-content .icon { font-size: 2.5em; color: var(--success-color); margin-bottom: 10px; }
-        #notificationModal .modal-footer { margin-top: 15px; display: flex; justify-content: center; gap: 10px;}
-        #notificationBell {
-            position: absolute;
-            top: 5px;
-            right: 5px;
-            font-size: 1.5em;
-            color: #ecf0f1;
-            cursor: pointer;
-        }
-        #notificationBadge {
-            position: absolute;
-            top: -5px;
-            right: -8px;
-            background-color: var(--danger-color);
-            color: white;
-            border-radius: 50%;
-            font-size: 0.6em;
-            font-weight: bold;
-            display: none;
-            width: 16px;
-            height: 16px;
-            padding: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        #notificationList {
-            display: none;
-            position: absolute;
-            top: 40px;
-            left: 0; /* Align to the left of the sidebar header */
-            width: 300px;
-            background-color: var(--card-bg-color);
-            border: 1px solid var(--border-color);
-            border-radius: var(--border-radius-md);
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-            z-index: 1010;
-            color: var(--text-color);
-            text-align: left;
-            max-height: 400px;
-            overflow-y: auto;
-        }
-         #notificationList .notification-item {
-            padding: 10px 15px;
-            border-bottom: 1px solid var(--border-color);
-            cursor: pointer;
-        }
-        #notificationList .notification-item:last-child {
-            border-bottom: none;
-        }
-         #notificationList .notification-item:hover {
-            background-color: #f9f9f9;
-        }
-         #notificationList .notification-item p { margin: 0; font-size: 0.9em; }
-         #notificationList .notification-item small { color: #777; font-size: 0.75em; }
-
-
-        /* Admin Headers UI */
-        .header-format-card {
-            background-color: #f9f9f9;
-            border: 1px solid var(--border-color);
-            border-radius: var(--border-radius-md);
-            padding: 15px;
-            margin-bottom: 15px;
-        }
-        .header-format-card h4 { margin-top: 0; }
-        .header-format-value {
-            background-color: #e9ecef;
-            padding: 10px;
-            border-radius: 5px;
-            font-family: monospace;
-            word-break: break-all;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .header-format-value .copy-icon {
-             cursor: pointer;
-        }
-        
-        .truncate {
-            max-width: 250px; /* Adjust width as needed */
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            display: inline-block;
-            vertical-align: middle;
-        }
-
-    </style>
-    <link rel="icon" type="image/png" href="icon.png">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Project Tracker</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body.login-view-active .dashboard-view { display: none; }
+    body.login-view-active .login-view { display: flex; }
+    .login-view, .dashboard-view {
+      min-height: 100vh;
+      display: none;
+      flex-direction: column;
+    }
+    #loading-overlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(255, 255, 255, 0.8);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      font-size: 1.5rem;
+      color: #333;
+    }
+    .group-separator td, .fix-separator td {
+      background-color: #f3f4f6;
+    }
+    /* Card layout on small screens */
+    @media (max-width: 768px) {
+      table { display: none; }
+      #project-cards { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+    }
+    @media (min-width: 769px) {
+      #project-cards { display: none; }
+    }
+  </style>
 </head>
 <body class="login-view-active">
 
-    <div id="auth-wrapper">
-        <h2>Project Tracker V2</h2>
-        <p>Please sign in to continue.</p>
-        <button id="signInBtn" class="btn btn-primary">Sign in with Google</button>
+  <!-- Loading Overlay -->
+  <div id="loading-overlay">Loading...</div>
+
+  <!-- Login View -->
+  <div id="auth-wrapper" class="login-view items-center justify-center bg-gray-50 p-6">
+    <div class="bg-white shadow-lg rounded-lg p-8 w-full max-w-md text-center">
+      <h1 class="text-2xl font-bold mb-4">Project Tracker</h1>
+      <p class="mb-6">Please sign in to continue</p>
+      <button id="btn-sign-in" class="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+        Sign In with Google
+      </button>
     </div>
+  </div>
 
-    <div class="dashboard-wrapper" style="display: none;">
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <h2>Team123</h2>
-                <div id="loggedInUser"></div>
-                 <div id="notificationBell">
-                    <i class="fas fa-bell"></i>
-                    <span id="notificationBadge"></span>
-                </div>
-                <div id="notificationList"></div>
-            </div>
-            <div class="sidebar-nav">
-                <button id="openDashboardBtn" class="active"><i class="fas fa-tasks icon"></i> Dashboard</button>
-                <button id="openNewProjectModalBtn"><i class="fas fa-plus icon"></i> Add Project</button>
-                <button id="openTlSummaryBtn"><i class="fas fa-chart-line icon"></i> TL Summary</button>
-                <button id="openProjectSettingsBtn"><i class="fas fa-cogs icon"></i> Project Settings</button>
-                <button id="openUserManagementBtn"><i class="fas fa-users icon"></i> User Management</button>
-                <button id="openDisputeBtn"><i class="fas fa-exclamation-triangle icon"></i> Dispute</button>
-                <button id="openAdminSettingsBtn"><i class="fas fa-user-shield icon"></i> Admin Settings</button>
-                <hr>
-                <div id="extrasMenu"></div>
-                <hr>
-                <button id="signOutBtn" class="btn btn-danger" style="margin-top: auto;">Sign Out</button>
-            </div>
-        </aside>
+  <!-- Dashboard -->
+  <div id="dashboard-wrapper" class="dashboard-view flex flex-col h-screen bg-gray-100">
 
-        <main class="main-content">
-            <div id="techDashboardContainer">
-                <div class="filter-section">
-                    <div class="filter-group">
-                        <label for="projectFilter">Project:</label>
-                        <select id="projectFilter">
-                            <option value="All">All Projects</option>
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <label for="fixCategoryFilter">Fix Category:</label>
-                        <select id="fixCategoryFilter">
-                            <option value="All">All</option>
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <input type="checkbox" id="showDay2"><label for="showDay2">Show Day 2</label>
-                        <input type="checkbox" id="showDay3"><label for="showDay3">Show Day 3</label>
-                        <input type="checkbox" id="showDay4"><label for="showDay4">Show Day 4</label>
-                        <input type="checkbox" id="showDay5"><label for="showDay5">Show Day 5</label>
-                    </div>
-                </div>
-                 <div id="techDashboard" class="table-container">
-                    <div class="table-scroll-wrapper">
-                        <table id="projectTable" class="project-table">
-                            <thead>
-                                <tr></tr>
-                            </thead>
-                            <tbody id="projectTableBody"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
+    <!-- Header -->
+    <header class="bg-white shadow flex items-center justify-between px-6 py-4 flex-wrap gap-4">
+      <div class="flex items-center flex-wrap gap-3">
+        <h2 class="text-xl font-semibold">Project Tracker</h2>
+        <select id="project-filter" class="border rounded px-2 py-1">
+          <option>All</option>
+        </select>
+        <select id="fixcat-filter" class="border rounded px-2 py-1">
+          <option>All</option>
+        </select>
+        <label class="inline-flex items-center space-x-2">
+          <input type="checkbox" id="day2-toggle" class="form-checkbox" /> <span>Day 2</span>
+        </label>
+        <label class="inline-flex items-center space-x-2">
+          <input type="checkbox" id="day3-toggle" class="form-checkbox" /> <span>Day 3</span>
+        </label>
+        <label class="inline-flex items-center space-x-2">
+          <input type="checkbox" id="day4-toggle" class="form-checkbox" /> <span>Day 4</span>
+        </label>
+        <label class="inline-flex items-center space-x-2">
+          <input type="checkbox" id="day5-toggle" class="form-checkbox" /> <span>Day 5</span>
+        </label>
+      </div>
+      <div class="flex items-center space-x-4">
+        <span id="logged-in-user" class="font-medium">Signed In</span>
+        <button id="btn-sign-out" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
+          Sign Out
+        </button>
+        <span id="notification-bell" class="relative text-xl cursor-pointer">🔔</span>
+      </div>
+    </header>
 
-            <div id="tlSummaryView" class="table-container" style="display: none;">
-                <h2>Project Summary</h2>
-                <div class="table-scroll-wrapper">
-                    <table id="summaryTable" class="project-table">
-                        <thead>
-                            <tr>
-                                <th>Project / Stage</th>
-                                <th>Total Areas</th>
-                                <th>Completed</th>
-                                <th>Progress</th>
-                                <th>Total Minutes</th>
-                                <th>Total Hours (Decimal)</th>
-                            </tr>
-                        </thead>
-                        <tbody id="summaryTableBody"></tbody>
-                    </table>
-                </div>
-            </div>
+    <!-- Main Content -->
+    <main class="flex-grow overflow-auto px-6 py-4">
+      <!-- Table view (desktop) -->
+      <div class="bg-white shadow rounded-lg overflow-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead id="project-table-head" class="bg-gray-50"></thead>
+          <tbody id="project-table-body" class="bg-white divide-y divide-gray-200"></tbody>
+        </table>
+      </div>
 
-            <div id="userManagementView" class="table-container" style="display: none;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <h2>User Management</h2>
-                    <button id="addUserBtn" class="btn btn-success"><i class="fas fa-plus"></i> Add User</button>
-                </div>
-                 <div class="table-scroll-wrapper">
-                    <table id="userTable" class="project-table">
-                        <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th>Email</th>
-                                <th>Tech ID</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="userTableBody"></tbody>
-                    </table>
-                </div>
-            </div>
-            
-            <div id="disputeView" class="table-container" style="display: none;">
-                <h2>File a Dispute</h2>
-                <form id="disputeForm">
-                    <div class="dispute-form-grid">
-                        <div class="dispute-form-group">
-                            <label for="disputeBlockId">Block ID:</label>
-                            <input type="text" id="disputeBlockId">
-                        </div>
-                        <div class="dispute-form-group">
-                            <label for="disputeTechId">Tech ID:</label>
-                            <select id="disputeTechId"></select>
-                        </div>
-                        <div class="dispute-form-group">
-                            <label for="disputeProjectName">Project Name:</label>
-                            <select id="disputeProjectName"></select>
-                        </div>
-                        <div class="dispute-form-group">
-                            <label for="disputeTechName">Tech Name:</label>
-                            <input type="text" id="disputeTechName" readonly>
-                        </div>
-                        <div class="dispute-form-group">
-                            <label for="disputePartial">Partial:</label>
-                            <select id="disputePartial">
-                                <option value="">Select Partial</option>
-                                <option value="Partial 1">Partial 1</option>
-                                <option value="Partial 2">Partial 2</option>
-                                <option value="Partial 3">Partial 3</option>
-                                <option value="Partial 4">Partial 4</option>
-                                <option value="Partial 5">Partial 5</option>
-                                <option value="Partial 6">Partial 6</option>
-                                <option value="Partial 7">Partial 7</option>
-                                <option value="Partial 8">Partial 8</option>
-                                <option value="Partial 9">Partial 9</option>
-                                <option value="Partial 10">Partial 10</option>
-                            </select>
-                        </div>
-                        <div class="dispute-form-group">
-                            <label for="disputeTeam">Team:</label>
-                            <select id="disputeTeam">
-                                <option value="">Select Team</option>
-                                <option value="Team 123">Team 123</option>
-                                <option value="Team 114">Team 114</option>
-                                <option value="Team 64">Team 64</option>
-                            </select>
-                        </div>
-                        <div class="dispute-form-group">
-                            <label for="disputePhase">Phase:</label>
-                            <select id="disputePhase">
-                                <option value="">Select Phase</option>
-                                <option value="Fix2">Fix2</option>
-                                <option value="Fix3">Fix3</option>
-                                <option value="Fix4">Fix4</option>
-                                <option value="Fix5">Fix5</option>
-                            </select>
-                        </div>
-                        <div class="dispute-form-group">
-                            <label for="disputeType">Type:</label>
-                            <select id="disputeType">
-                                <option value="">Select Type</option>
-                                <option value="Incorrect">Incorrect</option>
-                                <option value="Skip">Skip</option>
-                                <option value="Change">Change</option>
-                            </select>
-                        </div>
-                        <div class="dispute-form-group">
-                            <label for="disputeUid">UID (Initial FP's UID):</label>
-                            <input type="text" id="disputeUid">
-                        </div>
-                        <div class="dispute-form-group">
-                            <label for="disputeCategory">Category:</label>
-                            <select id="disputeCategory">
-                                <option value="">Select Category</option>
-                                <option value="1">1</option>
-                                <option value="2">2</option>
-                                <option value="3">3</option>
-                                <option value="4">4</option>
-                                <option value="5">5</option>
-                                <option value="6">6</option>
-                                <option value="7">7</option>
-                                <option value="8">8</option>
-                                <option value="9">9</option>
-                            </select>
-                        </div>
-                        <div class="dispute-form-group">
-                            <label for="disputeWarning">Warning:</label>
-                             <select id="disputeWarning">
-                                <option value="N/A">N/A</option>
-                                <option value="A">A</option>
-                                <option value="B">B</option>
-                                <option value="C">C</option>
-                                <option value="D">D</option>
-                                <option value="E">E</option>
-                                <option value="F">F</option>
-                                <option value="G">G</option>
-                             </select>
-                        </div>
-                        <div class="dispute-form-group">
-                            <label for="disputeRqaTechId">RQA TechID:</label>
-                            <input type="text" id="disputeRqaTechId">
-                        </div>
-                    </div>
-                     <div class="dispute-form-group" style="margin-top: 20px;">
-                        <label for="disputeReason">Detailed Reason for Dispute:</label>
-                        <textarea id="disputeReason" required></textarea>
-                    </div>
-                    <button type="submit" class="btn btn-success" style="margin-top: 20px;">Save Dispute</button>
-                </form>
+      <!-- Card view (mobile) -->
+      <div id="project-cards"></div>
+    </main>
 
-                 <div class="disputes-list-container">
-                    <div class="filter-section" style="justify-content: flex-end;">
-                         <div class="filter-group">
-                            <label for="disputeStatusFilter">Status:</label>
-                            <select id="disputeStatusFilter">
-                                <option value="All">All</option>
-                                <option value="Open">Open</option>
-                                <option value="Done">Done</option>
-                            </select>
-                        </div>
-                    </div>
-                    <h3>Disputes List</h3>
-                    <div class="table-scroll-wrapper">
-                        <table id="disputesTable" class="project-table">
-                            <thead>
-                                <tr>
-                                    <th>Project Name</th>
-                                    <th>Phase</th>
-                                    <th>Tech ID</th>
-                                    <th>Team</th>
-                                    <th>Type</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="disputesTableBody"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
+    <!-- Footer -->
+    <footer class="bg-white shadow-inner px-6 py-4 flex flex-wrap items-center space-x-4">
+      <div id="extras-container" class="flex space-x-4"></div>
+    </footer>
+  </div>
 
-            <div id="projectSettingsView" style="display: none;"></div>
-            <div id="adminSettingsView" style="display: none;"></div>
-
-        </main>
+  <!-- Modal -->
+  <div id="custom-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-lg max-w-md w-full p-6">
+      <h3 id="modal-title" class="text-lg font-semibold mb-2">Modal Title</h3>
+      <p id="modal-message" class="mb-4">Modal message goes here.</p>
+      <div class="flex justify-end space-x-2">
+        <button id="modal-cancel" class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Cancel</button>
+        <button id="modal-confirm" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">OK</button>
+      </div>
     </div>
-    
-    <div id="archiveModal" class="modal">
-        <div class="modal-content modal-lg">
-            <span class="close-btn" id="closeArchiveModalBtn">&times;</span>
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h2>Archived Projects</h2>
-                <button id="copyArchiveBtn" class="btn btn-primary"><i class="fas fa-copy"></i> Copy Table</button>
-            </div>
-            <div class="table-scroll-wrapper" style="max-height: 60vh;">
-                <table id="archiveTable" class="project-table">
-                    <thead></thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-    
-    <div id="notificationModal" class="modal">
-        <div class="modal-content">
-            <i class="fas fa-check-circle icon"></i>
-            <h2 id="notificationTitle">Success!</h2>
-            <p id="notificationMessage"></p>
-            <div class="modal-footer">
-                <button id="notificationViewBtn" class="btn btn-primary">View</button>
-                <button id="notificationCloseBtn" class="btn btn-secondary">Close</button>
-            </div>
-        </div>
-    </div>
+  </div>
 
-    <div id="disputeDetailsModal" class="modal">
-        <div class="modal-content">
-            <span class="close-btn" id="closeDisputeDetailsBtn">&times;</span>
-            <h2>Dispute Details</h2>
-            <div id="disputeDetailsContent"></div>
-        </div>
-    </div>
+  <!-- Script -->
+  <script src="script.js"></script>
+  <script>
+    // Basic modal API
+    function showModal(title, message, onConfirm) {
+      document.getElementById("modal-title").textContent = title;
+      document.getElementById("modal-message").textContent = message;
+      const modal = document.getElementById("custom-modal");
+      modal.classList.remove("hidden");
+      modal.classList.add("flex");
 
-     <div id="extraFormModal" class="modal">
-        <div class="modal-content">
-            <span class="close-btn" id="closeExtraFormBtn">&times;</span>
-            <h2 id="extraFormTitle">Add Extra Link</h2>
-            <form id="extraForm">
-                <input type="hidden" id="extraId">
-                <input type="hidden" id="extraRow">
-                <label for="extraName">Name:</label>
-                <input type="text" id="extraName" placeholder="e.g., Company Portal" required>
-                <label for="extraUrl">URL:</label>
-                <input type="url" id="extraUrl" placeholder="https://example.com" required>
-                <label for="extraIcon">Icon:</label>
-                <input type="text" id="extraIcon" placeholder="e.g., fas fa-link" required>
-                <p style="font-size: 0.8em; color: #666;">Use a Font Awesome class name (e.g., fas fa-folder, fas fa-chart-bar).</p>
-                <button type="submit" class="btn btn-success">Save Link</button>
-            </form>
-        </div>
-    </div>
-    
-    <div id="projectFormModal" class="modal">
-        <div class="modal-content">
-            <span class="close-btn" id="closeProjectFormBtn">&times;</span>
-            <h2>Add New Project</h2>
-            <form id="newProjectForm">
-                <label for="numRows">Number of Areas:</label>
-                <input type="number" id="numRows" value="1" min="1" required>
-                <label for="baseProjectName">Project Name:</label>
-                <input type="text" id="baseProjectName" placeholder="e.g., PROJ_ID_XYZ" required>
-                <label for="gsd">GSD:</label>
-                <select id="gsd" required>
-                    <option value="3in">3in</option>
-                    <option value="4in">4in</option>
-                    <option value="6in">6in</option>
-                    <option value="9in">9in</option>
-                </select>
-                <button type="submit" class="btn btn-success">Add Project(s)</button>
-            </form>
-        </div>
-    </div>
+      const confirmBtn = document.getElementById("modal-confirm");
+      const cancelBtn = document.getElementById("modal-cancel");
 
-    <div id="userFormModal" class="modal">
-        <div class="modal-content">
-            <span class="close-btn" id="closeUserFormBtn">&times;</span>
-            <h2 id="userFormTitle">Add User</h2>
-            <form id="userForm">
-                <input type="hidden" id="userId">
-                <input type="hidden" id="userRow">
-                <label for="userName">Name:</label>
-                <input type="text" id="userName" required>
-                <label for="userEmail">Email:</label>
-                <input type="email" id="userEmail">
-                <label for="userTechId">Tech ID:</label>
-                <input type="text" id="userTechId" required>
-                <button type="submit" class="btn btn-success">Save User</button>
-            </form>
-        </div>
-    </div>
+      const close = () => {
+        modal.classList.add("hidden");
+        modal.classList.remove("flex");
+        confirmBtn.onclick = null;
+        cancelBtn.onclick = null;
+      };
 
-    <div id="timeEditModal" class="modal">
-        <div class="modal-content">
-            <span class="close-btn" id="closeTimeEditModalBtn">&times;</span>
-            <h2 id="timeEditTitle">Edit Time</h2>
-            <form id="timeEditForm">
-                <input type="hidden" id="timeEditProjectId">
-                <input type="hidden" id="timeEditDay">
-                <label for="editStartTime">Start Time (HH:MM):</label>
-                <div class="time-edit-group">
-                    <input type="text" id="editStartTime" pattern="(1[0-2]|0?[1-9]):[0-5][0-9]" placeholder="e.g., 09:30">
-                    <select id="editStartTimeAmPm">
-                        <option value="AM">AM</option>
-                        <option value="PM">PM</option>
-                    </select>
-                </div>
-                <label for="editFinishTime">Finish Time (HH:MM):</label>
-                <div class="time-edit-group">
-                    <input type="text" id="editFinishTime" pattern="(1[0-2]|0?[1-9]):[0-5][0-9]" placeholder="e.g., 05:30">
-                    <select id="editFinishTimeAmPm">
-                        <option value="AM">AM</option>
-                        <option value="PM">PM</option>
-                    </select>
-                </div>
-                <button type="submit" class="btn btn-success">Save Time</button>
-            </form>
-        </div>
-    </div>
-
-    <div id="loadingOverlay">
-        <div class="spinner"></div>
-        <p>Loading...</p>
-    </div>
-
-    <script src="https://apis.google.com/js/api.js"></script>
-    <script src="https://accounts.google.com/gsi/client"></script>
-    <script src="script.js"></script>
+      cancelBtn.onclick = close;
+      confirmBtn.onclick = () => {
+        if (onConfirm) onConfirm();
+        close();
+      };
+    }
+    // Example usage: showModal("Confirm Action", "Are you sure?", () => console.log("Confirmed"));
+  </script>
 </body>
 </html>
