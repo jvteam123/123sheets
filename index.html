@@ -4,8 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Project Tracker</title>
+  <!-- Tailwind CSS CDN (or your build) -->
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
+    /* Optional extra styling */
     body.login-view-active .dashboard-view { display: none; }
     body.login-view-active .login-view { display: flex; }
     .login-view, .dashboard-view {
@@ -26,15 +28,7 @@
       color: #333;
     }
     .group-separator td, .fix-separator td {
-      background-color: #f3f4f6;
-    }
-    /* Card layout on small screens */
-    @media (max-width: 768px) {
-      table { display: none; }
-      #project-cards { display: grid; grid-template-columns: 1fr; gap: 1rem; }
-    }
-    @media (min-width: 769px) {
-      #project-cards { display: none; }
+      background-color: #f3f4f6; /* Tailwind gray-100 */
     }
   </style>
 </head>
@@ -43,7 +37,7 @@
   <!-- Loading Overlay -->
   <div id="loading-overlay">Loading...</div>
 
-  <!-- Login View -->
+  <!-- Login / Auth View -->
   <div id="auth-wrapper" class="login-view items-center justify-center bg-gray-50 p-6">
     <div class="bg-white shadow-lg rounded-lg p-8 w-full max-w-md text-center">
       <h1 class="text-2xl font-bold mb-4">Project Tracker</h1>
@@ -54,12 +48,12 @@
     </div>
   </div>
 
-  <!-- Dashboard -->
+  <!-- Main Dashboard View -->
   <div id="dashboard-wrapper" class="dashboard-view flex flex-col h-screen bg-gray-100">
 
-    <!-- Header -->
-    <header class="bg-white shadow flex items-center justify-between px-6 py-4 flex-wrap gap-4">
-      <div class="flex items-center flex-wrap gap-3">
+    <!-- Top Bar -->
+    <header class="bg-white shadow flex items-center justify-between px-6 py-4">
+      <div class="flex items-center space-x-4">
         <h2 class="text-xl font-semibold">Project Tracker</h2>
         <select id="project-filter" class="border rounded px-2 py-1">
           <option>All</option>
@@ -67,88 +61,50 @@
         <select id="fixcat-filter" class="border rounded px-2 py-1">
           <option>All</option>
         </select>
+        <!-- Day toggles -->
         <label class="inline-flex items-center space-x-2">
-          <input type="checkbox" id="day2-toggle" class="form-checkbox" /> <span>Day 2</span>
+          <input type="checkbox" id="day2-toggle" class="form-checkbox" />
+          <span>Show Day 2</span>
         </label>
         <label class="inline-flex items-center space-x-2">
-          <input type="checkbox" id="day3-toggle" class="form-checkbox" /> <span>Day 3</span>
+          <input type="checkbox" id="day3-toggle" class="form-checkbox" />
+          <span>Show Day 3</span>
         </label>
         <label class="inline-flex items-center space-x-2">
-          <input type="checkbox" id="day4-toggle" class="form-checkbox" /> <span>Day 4</span>
+          <input type="checkbox" id="day4-toggle" class="form-checkbox" />
+          <span>Show Day 4</span>
         </label>
         <label class="inline-flex items-center space-x-2">
-          <input type="checkbox" id="day5-toggle" class="form-checkbox" /> <span>Day 5</span>
+          <input type="checkbox" id="day5-toggle" class="form-checkbox" />
+          <span>Show Day 5</span>
         </label>
       </div>
       <div class="flex items-center space-x-4">
-        <span id="logged-in-user" class="font-medium">Signed In</span>
+        <span id="logged-in-user">Signed In</span>
         <button id="btn-sign-out" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
           Sign Out
         </button>
-        <span id="notification-bell" class="relative text-xl cursor-pointer">🔔</span>
+        <span id="notification-bell" class="relative text-xl">🔔</span>
       </div>
     </header>
 
-    <!-- Main Content -->
     <main class="flex-grow overflow-auto px-6 py-4">
-      <!-- Table view (desktop) -->
+      <!-- Table Container -->
       <div class="bg-white shadow rounded-lg overflow-auto">
         <table class="min-w-full divide-y divide-gray-200">
           <thead id="project-table-head" class="bg-gray-50"></thead>
           <tbody id="project-table-body" class="bg-white divide-y divide-gray-200"></tbody>
         </table>
       </div>
-
-      <!-- Card view (mobile) -->
-      <div id="project-cards"></div>
     </main>
 
-    <!-- Footer -->
+    <!-- Extras / Links Bar -->
     <footer class="bg-white shadow-inner px-6 py-4 flex flex-wrap items-center space-x-4">
       <div id="extras-container" class="flex space-x-4"></div>
     </footer>
   </div>
 
-  <!-- Modal -->
-  <div id="custom-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-    <div class="bg-white rounded-lg shadow-lg max-w-md w-full p-6">
-      <h3 id="modal-title" class="text-lg font-semibold mb-2">Modal Title</h3>
-      <p id="modal-message" class="mb-4">Modal message goes here.</p>
-      <div class="flex justify-end space-x-2">
-        <button id="modal-cancel" class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Cancel</button>
-        <button id="modal-confirm" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">OK</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Script -->
+  <!-- Your script (should be after HTML) -->
   <script src="script.js"></script>
-  <script>
-    // Basic modal API
-    function showModal(title, message, onConfirm) {
-      document.getElementById("modal-title").textContent = title;
-      document.getElementById("modal-message").textContent = message;
-      const modal = document.getElementById("custom-modal");
-      modal.classList.remove("hidden");
-      modal.classList.add("flex");
-
-      const confirmBtn = document.getElementById("modal-confirm");
-      const cancelBtn = document.getElementById("modal-cancel");
-
-      const close = () => {
-        modal.classList.add("hidden");
-        modal.classList.remove("flex");
-        confirmBtn.onclick = null;
-        cancelBtn.onclick = null;
-      };
-
-      cancelBtn.onclick = close;
-      confirmBtn.onclick = () => {
-        if (onConfirm) onConfirm();
-        close();
-      };
-    }
-    // Example usage: showModal("Confirm Action", "Are you sure?", () => console.log("Confirmed"));
-  </script>
 </body>
 </html>
