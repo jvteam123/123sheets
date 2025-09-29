@@ -146,6 +146,7 @@
         .status-startedavailable { background-color: var(--info-color); }
         .status-open { background-color: var(--warning-color); }
         .status-done { background-color: var(--success-color); }
+        .status-norefix { background-color: #7f8c8d; } /* Neutral blue-grey */
 
         .total-minutes-cell { background-color: #ffedd5; font-weight: 600; }
         .time-cell .edit-icon { margin-left: 8px; cursor: pointer; color: var(--secondary-color); }
@@ -480,6 +481,7 @@
                 <hr>
                 <div id="extrasMenu"></div>
                 <hr>
+                <button id="refreshDataBtn" style="background-color: #2980b9;"><i class="fas fa-sync-alt icon"></i> Refresh Data</button>
                 <button id="signOutBtn" class="btn btn-danger" style="margin-top: auto;">Sign Out</button>
             </div>
         </aside>
@@ -768,6 +770,14 @@
                 <input type="number" id="numRows" value="1" min="1" required>
                 <label for="baseProjectName">Project Name:</label>
                 <input type="text" id="baseProjectName" placeholder="e.g., PROJ_ID_XYZ" required>
+                <label for="fixCategory">Fix Stage:</label>
+                <select id="fixCategory" required>
+                    <option value="Fix1">Fix1</option>
+                    <option value="Fix2">Fix2</option>
+                    <option value="Fix3">Fix3</option>
+                    <option value="Fix4">Fix4</option>
+                    <option value="Fix5">Fix5</option>
+                </select>
                 <label for="gsd">GSD:</label>
                 <select id="gsd" required>
                     <option value="3in">3in</option>
