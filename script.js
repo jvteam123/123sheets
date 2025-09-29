@@ -7,9 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 SPREADSHEET_ID: "15bhPCYDLChEwO6_uQfvUyq5_qMQp4h816uM26yq3rNY",
                 SCOPES: "https://www.googleapis.com/auth/spreadsheets",
             },
-            // START: MODIFICATION
             cacheDuration: 5 * 60 * 1000, // 5 minutes in milliseconds
-            // END: MODIFICATION
             sheetNames: { PROJECTS: "Projects", USERS: "Users", DISPUTES: "Disputes", EXTRAS: "Extras", ARCHIVE: "Archive", NOTIFICATIONS: "Notifications" },
             HEADER_MAP: { 'id': 'id', 'Fix Cat': 'fixCategory', 'Project Name': 'baseProjectName', 'Area/Task': 'areaTask', 'GSD': 'gsd', 'Assigned To': 'assignedTo', 'Status': 'status', 'Day 1 Start': 'startTimeDay1', 'Day 1 Finish': 'finishTimeDay1', 'Day 1 Break': 'breakDurationMinutesDay1', 'Day 2 Start': 'startTimeDay2', 'Day 2 Finish': 'finishTimeDay2', 'Day 2 Break': 'breakDurationMinutesDay2', 'Day 3 Start': 'startTimeDay3', 'Day 3 Finish': 'finishTimeDay3', 'Day 3 Break': 'breakDurationMinutesDay3', 'Day 4 Start': 'startTimeDay4', 'Day 4 Finish': 'finishTimeDay4', 'Day 4 Break': 'breakDurationMinutesDay4', 'Day 5 Start': 'startTimeDay5', 'Day 5 Finish': 'finishTimeDay5', 'Day 5 Break': 'breakDurationMinutesDay5', 'Total (min)': 'totalMinutes', 'Last Modified': 'lastModifiedTimestamp', 'Batch ID': 'batchId' },
             USER_HEADER_MAP: { 'id': 'id', 'name': 'name', 'email': 'email', 'techId': 'techId' },
@@ -84,7 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         handleSignoutClick() {
             const token = gapi.client.getToken();
-            localStorage.removeItem('projectTrackerCache'); // Clear cache on sign out
+            localStorage.removeItem('projectTrackerCache');
             if (token) {
                 google.accounts.oauth2.revoke(token.access_token, () => {
                     this.handleSignedOutUser();
@@ -136,7 +134,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 return obj;
             });
         },
-        // START: MODIFICATION - Caching Logic
         async loadDataFromSheets(forceRefresh = false) {
             const cacheKey = 'projectTrackerCache';
             
@@ -200,7 +197,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.hideLoading();
             }
         },
-        // END: MODIFICATION
         async updateRowInSheet(sheetName, rowIndex, dataObject) {
             this.showLoading("Saving...");
             try {
@@ -227,7 +223,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     valueInputOption: 'USER_ENTERED',
                     resource: { values: values }
                 });
-                localStorage.removeItem('projectTrackerCache'); // Invalidate cache after a write
+                localStorage.removeItem('projectTrackerCache');
             } catch (err) {
                 if (!this.handleApiError(err)) {
                     alert("Failed to save changes. The data will be refreshed to prevent inconsistencies.");
@@ -287,6 +283,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: document.body, authWrapper: document.getElementById('auth-wrapper'),
                 dashboardWrapper: document.querySelector('.dashboard-wrapper'), signInBtn: document.getElementById('signInBtn'),
                 loggedInUser: document.getElementById('loggedInUser'), signOutBtn: document.getElementById('signOutBtn'),
+                refreshDataBtn: document.getElementById('refreshDataBtn'),
                 projectTable: document.getElementById('projectTable'),
                 projectTableHead: document.getElementById('projectTable').querySelector('thead tr'), projectTableBody: document.getElementById('projectTableBody'),
                 loadingOverlay: document.getElementById('loadingOverlay'), openNewProjectModalBtn: document.getElementById('openNewProjectModalBtn'),
@@ -341,13 +338,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 closeArchiveModalBtn: document.getElementById('closeArchiveModalBtn'),
                 copyArchiveBtn: document.getElementById('copyArchiveBtn'),
                 archiveTable: document.getElementById('archiveTable'),
-                refreshDataBtn: document.getElementById('refreshDataBtn'), // New button
             };
         },
         attachEventListeners() {
             this.elements.signInBtn.onclick = () => this.handleAuthClick();
             this.elements.signOutBtn.onclick = () => this.handleSignoutClick();
-            this.elements.refreshDataBtn.onclick = () => this.handleRefreshData(); // New listener
+            this.elements.refreshDataBtn.onclick = () => this.handleRefreshData();
             this.elements.openNewProjectModalBtn.onclick = () => this.elements.projectFormModal.classList.add('is-open');
             this.elements.closeProjectFormBtn.onclick = () => this.elements.projectFormModal.classList.remove('is-open');
             this.elements.newProjectForm.addEventListener('submit', (e) => this.handleAddProjectSubmit(e));
@@ -396,10 +392,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
         },
+        // START: MODIFICATION - Refresh Button Cooldown
         handleRefreshData() {
-            localStorage.removeItem('projectTrackerCache');
+            const refreshBtn = this.elements.refreshDataBtn;
+            refreshBtn.disabled = true;
+            refreshBtn.innerHTML = `<i class="fas fa-sync-alt icon"></i> Refreshing...`;
+
             this.loadDataFromSheets(true);
+
+            setTimeout(() => {
+                refreshBtn.disabled = false;
+                refreshBtn.innerHTML = `<i class="fas fa-sync-alt icon"></i> Refresh Data`;
+            }, this.config.cacheDuration);
         },
+        // END: MODIFICATION
         switchView(viewName) {
             this.elements.techDashboardContainer.style.display = 'none';
             this.elements.projectSettingsView.style.display = 'none';
