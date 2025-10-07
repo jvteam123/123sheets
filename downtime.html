@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project - Downtime Status</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --card-bg-color: rgba(255, 255, 255, 0.85);
+            --text-color: #2c3e50;
+            --secondary-text-color: #5a6d7f;
+            --accent-color: #3498db;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --border-color: rgba(255, 255, 255, 0.6);
+            --shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+            --border-radius-lg: 16px;
+        }
+
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', Arial, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: var(--text-color);
+            line-height: 1.6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px; /* Adjusted */
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+        
+        .main-card {
+            background-color: var(--card-bg-color);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+            padding: 30px; /* Adjusted */
+            max-width: 850px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        
+        #loading-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--secondary-text-color);
+        }
+        .loader {
+            border: 5px solid #e0eafc;
+            border-top: 5px solid var(--accent-color);
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1.2s linear infinite;
+            margin-bottom: 25px;
+        }
+        #loading-container h1 {
+             font-size: 1.6em;
+             margin-bottom: 8px;
+        }
+        #loading-container p {
+            font-size: 1.1em;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Pen Tool Animation Styles */
+        .animated-icon {
+            width: 200px;
+            height: 70px;
+            margin-bottom: 10px; /* Adjusted */
+        }
+
+        .pen-tool-svg {
+            overflow: visible;
+        }
+
+        #pen-tool-path {
+            stroke: var(--accent-color);
+            stroke-width: 2.5;
+            fill: none;
+            stroke-dasharray: 450;
+            stroke-dashoffset: 450;
+            animation: draw-curve 5s ease-in-out infinite;
+        }
+        
+        .handle-line {
+            stroke: #aeb8c2;
+            stroke-width: 1;
+        }
+        .anchor-point {
+            fill: var(--accent-color);
+            stroke: white;
+            stroke-width: 2;
+        }
+        .control-point {
+            fill: white;
+            stroke: #aeb8c2;
+            stroke-width: 2;
+        }
+
+        #pen-tool-controls {
+            opacity: 0;
+            animation: show-controls 5s ease-in-out infinite;
+        }
+
+        #pen-icon {
+            opacity: 0;
+            animation: move-pen 5s ease-in-out infinite;
+            offset-path: path('M 10,60 C 80,120 180,-20 240,60');
+        }
+
+        @keyframes draw-curve {
+            0% { stroke-dashoffset: 450; }
+            40% { stroke-dashoffset: 0; }
+            100% { stroke-dashoffset: 0; }
+        }
+
+        @keyframes show-controls {
+            0%, 20%, 80%, 100% { opacity: 0; }
+            30%, 70% { opacity: 1; }
+        }
+        
+        @keyframes move-pen {
+            0% { opacity: 1; offset-distance: 0%; }
+            40% { opacity: 1; offset-distance: 100%; }
+            41%, 100% { opacity: 0; offset-distance: 100%; }
+        }
+        
+        .downtime-title {
+            font-size: 2.8em; /* Adjusted */
+            font-weight: 700;
+            letter-spacing: 0.4em;
+            margin: 0 0 15px 0; /* Adjusted */
+            padding-bottom: 10px; /* Adjusted */
+            position: relative;
+            color: #485563;
+            background: linear-gradient(135deg, #29323c 0%, #485563 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .downtime-title::after {
+            content: '';
+            position: absolute;
+            display: block;
+            width: 100px;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #bdc3c7, transparent);
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        
+        #content-container h1 {
+            font-size: 1.1em; /* Adjusted */
+            font-weight: 500;
+            margin: 0 0 10px 0;
+        }
+        
+        #content-container .subtitle {
+            color: var(--secondary-text-color);
+            margin-bottom: 20px; /* Adjusted */
+            font-size: 0.95em;
+        }
+
+        #project-grid {
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px; /* Adjusted */
+            margin-top: 15px; /* Adjusted */
+        }
+
+        .project-card {
+            background-color: #ffffff;
+            border-radius: var(--border-radius-lg);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.07);
+            padding: 20px; /* Adjusted */
+            text-align: left;
+            border: 1px solid #e7eaf3;
+            transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+        }
+        .project-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 25px rgba(0,0,0,0.1);
+        }
+
+        .project-card h2 {
+            margin: 0 0 15px 0; /* Adjusted */
+            padding-bottom: 10px; /* Adjusted */
+            border-bottom: 1px solid #e0e0e0;
+            font-size: 1.3em; /* Adjusted */
+        }
+
+        .stage-item { margin-bottom: 15px; }
+        .stage-item:last-child { margin-bottom: 0; }
+        .stage-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 0.9em; /* Adjusted */
+        }
+        .stage-header .stage-name { font-weight: 500; }
+        .stage-header .stage-progress-text { color: var(--secondary-text-color); }
+        .progress-bar {
+            width: 100%;
+            background-color: #e9ecef;
+            border-radius: 25px;
+            overflow: hidden;
+            height: 10px;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-color), #85c1e9);
+            border-radius: 25px;
+            transition: width 0.5s ease-in-out;
+        }
+        .progress-bar-fill.complete {
+             background: linear-gradient(90deg, var(--success-color), #58d68d);
+        }
+
+        .progress-bar-fill.waiting {
+            background-color: var(--warning-color);
+            background-image: linear-gradient(
+                -45deg, 
+                rgba(255,255,255, .2) 25%, 
+                transparent 25%, 
+                transparent 50%, 
+                rgba(255,255,255, .2) 50%, 
+                rgba(255,255,255, .2) 75%, 
+                transparent 75%, 
+                transparent
+            );
+            background-size: 40px 40px;
+            animation: animate-stripes 2s linear infinite;
+        }
+        @keyframes animate-stripes {
+            0% { background-position: 0 0; }
+            100% { background-position: 80px 0; }
+        }
+
+        .footer-info {
+            font-size: 0.9em;
+            color: var(--secondary-text-color);
+            border-top: 1px solid #e0e0e0;
+            width: 100%;
+            padding-top: 15px; /* Adjusted */
+            margin-top: 20px; /* Adjusted */
+        }
+
+        #error-message { color: #e74c3c; font-size: 1.1em; }
+    </style>
+    <link rel="icon" type="image/png" href="icon.png">
+</head>
+<body>
+
+    <main class="main-card">
+        <div id="loading-container">
+            <div class="loader"></div>
+            <h1>Loading Status</h1>
+            <p>Connecting to project database...</p>
+        </div>
+
+        <div id="content-container" style="display: none;">
+            <svg class="animated-icon" viewBox="0 0 250 100">
+                <g id="pen-tool-controls">
+                    <line class="handle-line" x1="10" y1="60" x2="80" y2="120" />
+                    <rect class="anchor-point" x="7" y="57" width="6" height="6" />
+                    <circle class="control-point" cx="80" cy="120" r="4" />
+            
+                    <line class="handle-line" x1="240" y1="60" x2="180" y2="-20" />
+                    <rect class="anchor-point" x="237" y="57" width="6" height="6" />
+                    <circle class="control-point" cx="180" cy="-20" r="4" />
+                </g>
+                <path id="pen-tool-path" d="M 10 60 C 80 120, 180 -20, 240 60" />
+                <image id="pen-icon" href="pen-tool.png" width="24" height="24" transform="translate(-12, -12)" />
+            </svg>
+
+            <h2 class="downtime-title">D O W N T I M E</h2>
+            <h1>Photogrammetric Correction Specialist II</h1>
+            <p class="subtitle">There are no projects available for assignment. Tech are on stand by..</p>
+            
+            <div id="project-grid">
+                <p>Fetching project data...</p>
+            </div>
+
+            <div class="footer-info">
+                <span id="current-date"></span> &bull; <span id="current-time"></span>
+            </div>
+        </div>
+        
+        <div id="error-message" style="display: none;"></div>
+    </main>
+    
+    <script src="https://apis.google.com/js/api.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const StatusDashboard = {
+                elements: {
+                    loadingContainer: document.getElementById('loading-container'),
+                    contentContainer: document.getElementById('content-container'),
+                    projectGrid: document.getElementById('project-grid'),
+                    errorMessage: document.getElementById('error-message'),
+                    currentDate: document.getElementById('current-date'),
+                    currentTime: document.getElementById('current-time'),
+                },
+                config: {
+                    google: {
+                        API_KEY: "AIzaSyBxlhWwf3mlS_6Q3BiUsfpH21AsbhVmDw8",
+                        SPREADSHEET_ID: "15bhPCYDLChEwO6_uQfvUyq5_qMQp4h816uM26yq3rNY",
+                    },
+                    sheetName: "Projects",
+                     HEADER_MAP: { 'Fix Cat': 'fixCategory', 'Project Name': 'baseProjectName', 'Status': 'status', 'Last Modified': 'lastModifiedTimestamp' },
+                },
+
+                init() {
+                    this.elements.contentContainer.style.display = 'none';
+                    this.elements.loadingContainer.style.display = 'flex';
+                    document.body.style.alignItems = 'center';
+
+                    gapi.load('client', this.initializeGapiClient.bind(this));
+                },
+
+                async initializeGapiClient() {
+                    try {
+                        await gapi.client.init({
+                            apiKey: this.config.google.API_KEY,
+                            discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'],
+                        });
+                        await this.loadAndRenderProjects();
+                    } catch (error) {
+                        this.showError("Could not initialize connection to Google API.");
+                        console.error(error);
+                    }
+                },
+
+                async loadAndRenderProjects() {
+                    try {
+                        const response = await gapi.client.sheets.spreadsheets.values.get({
+                            spreadsheetId: this.config.google.SPREADSHEET_ID,
+                            range: this.config.sheetName,
+                        });
+
+                        const projects = this.sheetValuesToObjects(response.result.values);
+                        const processedData = this.processProjectData(projects);
+                        this.render(processedData);
+
+                    } catch (err) {
+                        this.showError("Failed to load project data. Please ensure the Google Sheet is public ('Anyone with the link can view').");
+                        console.error(err);
+                    }
+                },
+
+                sheetValuesToObjects(values) {
+                    if (!values || values.length < 2) return [];
+                    const headers = values[0];
+                    const headerMap = this.config.HEADER_MAP;
+                    return values.slice(1).map((row) => {
+                        let obj = {};
+                        headers.forEach((header, i) => {
+                            const propName = headerMap[header.trim()];
+                            if (propName) obj[propName] = row[i] || "";
+                        });
+                        return obj;
+                    }).filter(p => p.baseProjectName && p.fixCategory);
+                },
+
+                processProjectData(projects) {
+                    if (!projects || projects.length === 0) return {};
+                    
+                    const groupedByProject = projects.reduce((acc, task) => {
+                        const projectName = task.baseProjectName;
+                        if (!acc[projectName]) {
+                            acc[projectName] = { 
+                                stages: {},
+                                lastModified: '1970-01-01T00:00:00.000Z'
+                            };
+                        }
+                        
+                        const stage = task.fixCategory || 'Uncategorized';
+                        if (!acc[projectName].stages[stage]) {
+                            acc[projectName].stages[stage] = { total: 0, completed: 0 };
+                        }
+                        acc[projectName].stages[stage].total++;
+                        if (task.status === 'Completed') {
+                            acc[projectName].stages[stage].completed++;
+                        }
+
+                        if (task.lastModifiedTimestamp && new Date(task.lastModifiedTimestamp) > new Date(acc[projectName].lastModified)) {
+                            acc[projectName].lastModified = task.lastModifiedTimestamp;
+                        }
+
+                        return acc;
+                    }, {});
+
+                    for (const projectName in groupedByProject) {
+                        const project = groupedByProject[projectName];
+                        const stageNames = Object.keys(project.stages);
+
+                        const latestStageNum = stageNames.reduce((max, stageName) => {
+                            const num = parseInt((stageName || 'Fix0').replace('Fix', ''), 10);
+                            return Math.max(max, num);
+                        }, 0);
+                        
+                        project.latestStageNum = latestStageNum;
+                        project.nextStage = `Fix${latestStageNum + 1}`;
+                    }
+                    return groupedByProject;
+                },
+
+                render(projectData) {
+                    document.body.style.alignItems = 'flex-start';
+                    this.elements.loadingContainer.style.display = 'none';
+                    this.elements.contentContainer.style.display = 'block';
+                    this.elements.projectGrid.innerHTML = '';
+                    
+                    const projectNames = Object.keys(projectData)
+                        .sort((a, b) => {
+                            const dateB = projectData[b].lastModified ? new Date(projectData[b].lastModified) : new Date(0);
+                            const dateA = projectData[a].lastModified ? new Date(projectData[a].lastModified) : new Date(0);
+                            return dateB - dateA;
+                        })
+                        .slice(0, 3); // Display only the 3 most recent projects.
+
+                    if (projectNames.length === 0) {
+                        this.elements.projectGrid.innerHTML = '<p>No active project data found.</p>';
+                    } else {
+                        projectNames.forEach(projectName => {
+                            const project = projectData[projectName];
+                            
+                            const contentHTML = `
+                                <div class="stage-item">
+                                    <div class="stage-header">
+                                        <span class="stage-name" style="color: var(--warning-color);">${project.nextStage}</span>
+                                        <span class="stage-progress-text">Awaiting Release</span>
+                                    </div>
+                                    <div class="progress-bar">
+                                        <div class="progress-bar-fill waiting" style="width: 100%;"></div>
+                                    </div>
+                                </div>
+                            `;
+
+                            const card = document.createElement('div');
+                            card.className = 'project-card';
+                            card.innerHTML = `
+                                <h2>${projectName.replace(/_/g, ' ')}</h2>
+                                ${contentHTML}
+                            `;
+                            this.elements.projectGrid.appendChild(card);
+                        });
+
+                        if (this.elements.projectGrid.children.length === 0) {
+                            this.elements.projectGrid.innerHTML = '<p>No projects found.</p>';
+                        }
+                    }
+                    this.updateTimestamp();
+                },
+
+                updateTimestamp() {
+                    const now = new Date();
+                    const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+                    const timeOptions = { hour: '2-digit', minute: '2-digit', hour12: true };
+
+                    this.elements.currentDate.textContent = now.toLocaleDateString(undefined, dateOptions);
+                    this.elements.currentTime.textContent = now.toLocaleTimeString([], timeOptions);
+                },
+
+                showError(message) {
+                    const mainCard = document.querySelector('.main-card');
+                    mainCard.innerHTML = `<div id="error-message">${message}</div>`;
+                },
+            };
+
+            StatusDashboard.init();
+        });
+    </script>
+</body>
+</html>
