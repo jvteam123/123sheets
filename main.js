@@ -20,7 +20,8 @@ document.addEventListener('DOMContentLoaded', () => {
         init() {
             ui.setupDOMReferences(this);
             this.attachEventListeners();
-            auth.initClient(this.handleAuthFlow.bind(this));
+            // Pass the callback AND the button element to the auth module
+            auth.initClient(this.handleAuthFlow.bind(this), ui.elements.signInBtn);
         },
 
         handleAuthFlow(isSignedIn) {
