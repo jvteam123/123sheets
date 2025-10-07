@@ -9,14 +9,15 @@ export const config = {
     sheetNames: {
         PROJECTS: "Projects",
         USERS: "Users",
+        DISPUTES: "Disputes", // Add this
     },
     HEADER_MAP: { 
         'id': 'id', 'Fix Cat': 'fixCategory', 'Project Name': 'baseProjectName', 'Area/Task': 'areaTask', 
         'GSD': 'gsd', 'Assigned To': 'assignedTo', 'Status': 'status', 
         'Day 1 Start': 'startTimeDay1', 'Day 1 Finish': 'finishTimeDay1', 
-        'Day 2 Start': 'startTimeDay2', 'Day 2 Finish': 'finishTimeDay2',
-        'Day 3 Start': 'startTimeDay3', 'Day 3 Finish': 'finishTimeDay3',
         'Total (min)': 'totalMinutes', 'Last Modified': 'lastModifiedTimestamp' 
     },
     USER_HEADER_MAP: { 'id': 'id', 'name': 'name', 'email': 'email', 'techId': 'techId' },
+    // Add this new header map for Disputes
+    DISPUTE_HEADER_MAP: { 'id': 'id', 'Project Name': 'projectName', 'Tech ID': 'techId', 'Reason': 'reason', 'Status': 'status' },
 };
