@@ -9,7 +9,7 @@ function sheetValuesToObjects(values, headerMap) {
     if (!values || values.length < 2) return [];
     const headers = values[0];
     return values.slice(1).map((row, index) => {
-        const obj = { _row: index + 2 };
+        const obj = { _row: index + 2 }; // Store original row number
         headers.forEach((header, i) => {
             const propName = headerMap[header.trim()];
             if (propName) obj[propName] = row[i] || "";
@@ -120,8 +120,49 @@ export async function addProjects(projectData) {
     cache.data = null;
 }
 
-export const updateProject = (project, updates) => updateRowInSheet(config.sheetNames.PROJECTS, project._row, { ...project, ...updates }, config.HEADER_MAP);
+export async function updateProject(project, updates) {
+    const updatedProject = { ...project, ...updates, lastModifiedTimestamp: new Date().toISOString() };
+    
+    if (Object.keys(updates).some(k => k.includes('Time'))) {
+        updatedProject.totalMinutes = calculateTotalMinutes(updatedProject);
+    }
+    
+    await updateRowInSheet(config.sheetNames.PROJECTS, project._row, updatedProject, config.HEADER_MAP);
+    return updatedProject;
+}
+
 export const saveUser = (user) => user._row ? updateRowInSheet(config.sheetNames.USERS, user._row, user, config.USER_HEADER_MAP) : appendRowToSheet(config.sheetNames.USERS, user, config.USER_HEADER_MAP);
 export const deleteUser = (user) => deleteSheetRow(config.sheetNames.USERS, user._row);
 export const addDispute = (dispute) => appendRowToSheet(config.sheetNames.DISPUTES, dispute, config.DISPUTE_HEADER_MAP);
 export const updateDispute = (dispute) => updateRowInSheet(config.sheetNames.DISPUTES, dispute._row, dispute, config.DISPUTE_HEADER_MAP);
+
+// --- HELPER FUNCTIONS ---
+
+function calculateTotalMinutes(project) {
+    let total = 0;
+    for (let i = 1; i <= 3; i++) {
+        const start = parseTimeToMinutes(project[`startTimeDay${i}`]);
+        const finish = parseTimeToMinutes(project[`finishTimeDay${i}`]);
+        if (start && finish) {
+            let diff = finish - start;
+            if (diff < 0) diff += 24 * 60; // Handles overnight work
+            total += diff;
+        }
+    }
+    return total > 0 ? total : '';
+}
+
+function parseTimeToMinutes(timeStr) {
+    if (!timeStr || typeof timeStr !== 'string') return 0;
+    
+    // Handles "HH:MM" format
+    const timeParts = timeStr.split(':');
+    if (timeParts.length === 2) {
+        const hours = parseInt(timeParts[0], 10);
+        const minutes = parseInt(timeParts[1], 10);
+        if (!isNaN(hours) && !isNaN(minutes)) {
+            return hours * 60 + minutes;
+        }
+    }
+    return 0;
+}
