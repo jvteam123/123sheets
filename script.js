@@ -374,6 +374,7 @@ document.addEventListener('DOMContentLoaded', () => {
             this.elements.disputesTableBody.addEventListener('click', (e) => this.handleDisputeActions(e));
             this.elements.closeDisputeDetailsBtn.onclick = () => this.elements.disputeDetailsModal.classList.remove('is-open');
             this.elements.disputeDetailsContent.addEventListener('click', (e) => this.handleCopyToClipboard(e));
+            this.elements.tlSummaryView.addEventListener('click', (e) => this.handleCopyToClipboard(e));
             this.elements.disputeStatusFilter.addEventListener('change', (e) => {
                 this.state.filters.disputeStatus = e.target.value;
                 this.renderDisputes();
