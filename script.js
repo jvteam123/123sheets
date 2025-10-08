@@ -455,6 +455,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }, this.config.cacheDuration);
         },
         switchView(viewName) {
+            if (viewName === 'admin') {
+                const code = prompt("Please enter the admin passkey to continue:");
+                if (code !== "248617") {
+                    alert("Incorrect passkey. Access denied.");
+                    return;
+                }
+            }
+        
             this.elements.techDashboardContainer.style.display = 'none';
             this.elements.projectSettingsView.style.display = 'none';
             this.elements.tlSummaryView.style.display = 'none';
@@ -965,7 +973,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 sortedFixKeys.forEach(fixKey => {
                     const tasksInFix = groupedByFix[fixKey];
                     const totalTasks = tasksInFix.length;
-                    // Completed now includes 'No Refix' status
                     const completedTasks = tasksInFix.filter(p => p.status === 'Completed' || p.status === 'No Refix').length;
                     const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
                     const totalMinutes = tasksInFix.reduce((sum, task) => sum + (parseInt(task.totalMinutes, 10) || 0), 0);
@@ -974,21 +981,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     const fixNum = parseInt(fixKey.replace('Fix', ''), 10);
                     row.className = `summary-stage-row fix-stage-${fixNum}`;
 
-                    // Column 1: Project / Stage
                     row.insertCell().textContent = fixKey;
-                    // Column 2: Total Areas
                     row.insertCell().textContent = totalTasks;
-                    // Column 3: Completed
                     row.insertCell().textContent = completedTasks;
-                    // Column 4: Progress
                     const progressCell = row.insertCell();
                     progressCell.innerHTML = `
                         <div class="progress-bar" title="${progress.toFixed(1)}%">
                             <div class="progress-bar-fill" style="width: ${progress}%;">${progress.toFixed(1)}%</div>
                         </div>`;
-                    // Column 5: Total Minutes
                     row.insertCell().textContent = totalMinutes;
-                    // Column 6: Total Hours (Decimal)
                     row.insertCell().textContent = (totalMinutes / 60).toFixed(2);
                 });
             });
