@@ -10,17 +10,17 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         :root {
-            --primary-color: #3498db;
-            --secondary-color: #6c757d;
-            --success-color: #2ecc71;
+            --primary-color: #2c3e50;
+            --secondary-color: #95a5a6;
+            --success-color: #27ae60;
             --warning-color: #f39c12;
-            --danger-color: #e74c3c;
-            --info-color: #8e44ad; /* Purple for Started Available */
-            --bg-color: #f0f2f5;
+            --danger-color: #c0392b;
+            --info-color: #8e44ad;
+            --bg-color: #ecf0f1;
             --card-bg-color: #ffffff;
-            --text-color: #2c3e50;
-            --border-color: #e0e0e0;
-            --shadow-light: 0 2px 5px rgba(0,0,0,0.05);
+            --text-color: #34495e;
+            --border-color: #dfe4ea;
+            --shadow-light: 0 4px 12px rgba(0,0,0,0.08);
             --border-radius-md: 8px;
             --border-radius-lg: 12px;
             /* Fix Stage Colors */
@@ -48,7 +48,7 @@
             min-height: 100vh;
         }
         .dashboard-wrapper { display: flex; height: 100vh; width: 100%; }
-        .sidebar { width: 250px; background-color: var(--text-color); color: #ecf0f1; padding: 20px; display: flex; flex-direction: column; border-right: 1px solid #475569; flex-shrink: 0; }
+        .sidebar { width: 250px; background-color: var(--primary-color); color: #ecf0f1; padding: 20px; display: flex; flex-direction: column; border-right: 1px solid #475569; flex-shrink: 0; }
         .sidebar-header { text-align: center; margin-bottom: 20px; position: relative; }
         .sidebar-header h2 { color: #fff; margin-top: 0; margin-bottom: 5px; font-size: 1.5em; }
         .sidebar-header #loggedInUser { color: #bdc3c7; font-size: 0.9em; }
@@ -68,18 +68,18 @@
             width: 8px;
         }
         .sidebar-nav::-webkit-scrollbar-track {
-            background: var(--text-color);
+            background: var(--primary-color);
         }
         .sidebar-nav::-webkit-scrollbar-thumb {
             background-color: #475569;
             border-radius: 10px;
-            border: 2px solid var(--text-color);
+            border: 2px solid var(--primary-color);
         }
         .sidebar-nav::-webkit-scrollbar-thumb:hover {
             background-color: #6c757d;
         }
         .sidebar-nav::-webkit-scrollbar-corner {
-            background: var(--text-color); /* Fixes the white corner bug */
+            background: var(--primary-color);
         }
         
         .sidebar-nav button, .sidebar-nav a.btn-extra { display: flex; align-items: center; width: 100%; padding: 12px 15px; margin-bottom: 10px; background-color: transparent; border: none; color: #ecf0f1; font-size: 1.1em; cursor: pointer; border-radius: var(--border-radius-md); transition: background-color: 0.3s ease; text-align: left; gap: 12px; text-decoration: none; }
@@ -203,7 +203,7 @@
         tr.fix-stage-4 { background-color: var(--fix-color-4); }
         tr.fix-stage-5 { background-color: var(--fix-color-5); }
         tr.fix-stage-1:hover, tr.fix-stage-2:hover, tr.fix-stage-3:hover, tr.fix-stage-4:hover, tr.fix-stage-5:hover {
-             background-color: #d1eaff; /* A common hover color */
+             background-color: #d1eaff;
         }
         .project-separator-row td {
             border-bottom: 2px solid #333;
@@ -228,14 +228,13 @@
             background-color: rgba(0,0,0,0.6); 
         }
         .modal.is-open {
-             /* Flexbox for centering */
             display: flex;
             justify-content: center;
             align-items: center;
         }
         .modal-content { 
             background-color: var(--card-bg-color); 
-            margin: auto; /* Important for centering */
+            margin: auto;
             padding: 25px; 
             border-radius: var(--border-radius-lg); 
             width: 90%; 
@@ -257,7 +256,7 @@
         .modal-actions {
             display: flex;
             align-items: center;
-            gap: 20px; /* This creates the space between the buttons */
+            gap: 20px;
         }
         .modal-content input, .modal-content select { width: 100%; padding: 8px; margin-bottom: 10px; box-sizing: border-box; }
         .time-edit-group { display: flex; gap: 10px; align-items: center; }
@@ -384,7 +383,7 @@
             text-align: right;
             color: #333;
             word-break: break-all;
-            user-select: text; /* Make text selectable */
+            user-select: text;
         }
         #disputeDetailsContent .copy-icon {
             cursor: pointer;
@@ -432,7 +431,7 @@
             display: none;
             position: absolute;
             top: 40px;
-            left: 0; /* Align to the left of the sidebar header */
+            left: 0;
             width: 300px;
             background-color: var(--card-bg-color);
             border: 1px solid var(--border-color);
@@ -483,7 +482,7 @@
         }
         
         .truncate {
-            max-width: 250px; /* Adjust width as needed */
+            max-width: 250px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -496,7 +495,7 @@
         tr.fix-stage-4, .summary-stage-row.fix-stage-4 { background-color: var(--fix-color-4); }
         tr.fix-stage-5, .summary-stage-row.fix-stage-5 { background-color: var(--fix-color-5); }
         tr.fix-stage-1:hover, tr.fix-stage-2:hover, tr.fix-stage-3:hover, tr.fix-stage-4:hover, tr.fix-stage-5:hover {
-             background-color: #d1eaff; /* A common hover color */
+             background-color: #d1eaff;
         }
     </style>
     <link rel="icon" type="image/png" href="icon.png">
