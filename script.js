@@ -577,9 +577,30 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 let html = '<div style="width: 100%; max-width: 700px; margin: 0 auto; padding-top: 20px;">';
                 
+                // >>> MODIFIED: ADD DEFAULT WELCOME FEED AND LOGGING <<<
                 if (snapshot.empty) {
-                    html += '<p style="padding: 20px;">No feed items found. Start by adding an item to your Firestore "feedItems" collection.</p>';
+                    const projectId = this.config.firebase.PROJECT_ID;
+                    const firestoreLink = `https://console.firebase.google.com/project/${projectId}/firestore/data/~2F`;
+                    
+                    console.warn(`[FEED SETUP]: The 'feedItems' collection is currently empty. Please visit the Firebase Firestore Console to create the collection and add your first feed item: ${firestoreLink}`);
+
+                    // Default Welcome Item (Simulated)
+                    html += `<div style="background-color: #e8f4f8; padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: left; border-left: 5px solid var(--info-color);">
+                                <h4 style="margin: 0; color: var(--text-color);"><i class="fas fa-hand-sparkles"></i> Welcome to Project Tracker V3!</h4>
+                                <p style="margin: 5px 0 10px; font-size: 0.95em;">This is a simulated welcome message. Your real-time dashboard feed is working and ready to display live project updates!</p>
+                                <small style="color: #777; border-top: 1px solid #c9e6f0; padding-top: 5px; display: block; font-size: 0.8em;">
+                                    <i class="fas fa-user"></i> System &bull; <i class="fas fa-clock"></i> Just now
+                                </small>
+                             </div>`;
+                    
+                    // Setup Guide Item with link
+                    html += `<div style="background-color: #fff3e0; padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: left; border-left: 5px solid var(--warning-color);">
+                                <h4 style="margin: 0; color: var(--text-color);"><i class="fas fa-tools"></i> Firebase Setup: Collection Empty</h4>
+                                <p style="margin: 5px 0 10px; font-size: 0.95em;">The <code>feedItems</code> collection is empty. To populate this feed, you need to create the collection in your Firebase console and add your first item.</p>
+                                <a href="${firestoreLink}" target="_blank" style="color: var(--warning-color); font-weight: 600;"><i class="fas fa-external-link-alt"></i> Go to Firebase Firestore Console</a>
+                             </div>`;
                 } else {
+                // >>> END MODIFIED <<<
                     snapshot.forEach(doc => {
                         const item = doc.data();
                         const timestamp = item.timestamp ? new Date(item.timestamp.toDate()).toLocaleString() : 'N/A';
