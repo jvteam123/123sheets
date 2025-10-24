@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 SPREADSHEET_ID: "18uNdS6FdhiUEw0SN4o4BNos1KRCdWorVvmTDAL9QD_Q",
                 SCOPES: "https://www.googleapis.com/auth/spreadsheets",
             },
-            // Corrected casing for Firebase config keys (CRITICAL FIX)
+            // Corrected casing for Firebase config keys
             firebase: {
                 apiKey: "AIzaSyA1rWP0ky1L-4TqCwtm0OZZSa76EuymP8o",
                 authDomain: "mysocial-3b3fc.firebaseapp.com",
