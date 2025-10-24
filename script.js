@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 SPREADSHEET_ID: "18uNdS6FdhiUEw0SN4o4BNos1KRCdWorVvmTDAL9QD_Q",
                 SCOPES: "https://www.googleapis.com/auth/spreadsheets",
             },
-            // Corrected casing for Firebase config keys
+            // Corrected casing for Firebase config keys (CRITICAL FIX)
             firebase: {
                 apiKey: "AIzaSyA1rWP0ky1L-4TqCwtm0OZZSa76EuymP8o",
                 authDomain: "mysocial-3b3fc.firebaseapp.com",
@@ -570,7 +570,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         },
         
-        // NEW FUNCTION: Helper to check if user is signed in (FIXED AUTH CHECK)
+        // FUNCTION: Helper to check if user is signed in (KEPT FOR OTHER USES)
         isUserSignedIn() {
             const authInstance = gapi.auth2.getAuthInstance();
             return authInstance && authInstance.isSignedIn.get();
@@ -578,30 +578,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
         async handleNewFeedItemSubmit(event) {
             event.preventDefault();
-
-            // CHECK: Ensure user is signed in before posting
-            if (!this.isUserSignedIn()) {
-                 alert("You must sign in with Google before posting an update.");
-                 this.handleAuthClick(); 
-                 return;
-            }
             
             this.showLoading("Posting update to feed...");
             
-            const userProfile = gapi.auth2.getAuthInstance().currentUser.get().getBasicProfile();
-            const userEmail = userProfile.getEmail();
-            const userName = userProfile.getName(); // Use full name if available, otherwise fallback to email prefix
-
+            // Bypass GSI check and use fallback user (User requested 'allow all')
+            let userName = "Anonymous Poster";
+            try {
+                // Try to get the name if GSI happened to complete in the background
+                const userProfile = gapi.auth2.getAuthInstance().currentUser.get().getBasicProfile();
+                if (userProfile) {
+                     userName = userProfile.getName() || userProfile.getEmail().split('@')[0];
+                }
+            } catch (e) {
+                // Ignore GSI error, proceed with anonymous post
+                console.warn("GSI/Firebase Auth profile could not be retrieved. Posting as Anonymous.");
+            }
+            
             const newPost = {
                 title: this.elements.feedTitle.value,
                 content: this.elements.feedContent.value,
-                user: userName || userEmail.split('@')[0], 
+                user: userName, 
                 timestamp: firebase.firestore.FieldValue.serverTimestamp(), 
                 likes: 0,
                 comments: 0,
             };
 
             try {
+                // This call will only succeed if Firebase Rules are set to 'allow create: if true;'
                 await this.firebaseDb.collection('feedItems').add(newPost);
                 
                 this.elements.newFeedItemForm.reset();
@@ -609,7 +612,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.renderDashboardFeed(); 
                 
             } catch (error) {
-                alert("Error posting feed item. Check Firebase write rules or network connection.");
+                alert("Error posting feed item. The Firebase server rejected the request. Ensure your Firestore rules allow 'create' access (e.g., if true).");
                 console.error("Firebase Write Error:", error);
             } finally {
                 this.hideLoading();
@@ -617,17 +620,12 @@ document.addEventListener('DOMContentLoaded', () => {
         },
 
         async handleLikeClick(docId) {
-            // Check sign-in status before allowing a like operation
-            if (!this.isUserSignedIn()) {
-                 alert("You must be signed in to like a post.");
-                 this.handleAuthClick();
-                 return;
-            }
-
+            
             this.showLoading("Updating like count...");
             try {
                 const docRef = this.firebaseDb.collection('feedItems').doc(docId);
                 
+                // This transaction will only succeed if Firebase Rules are set to 'allow update: if true;'
                 await this.firebaseDb.runTransaction(async (transaction) => {
                     const doc = await transaction.get(docRef);
                     if (!doc.exists) {
@@ -641,7 +639,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.renderDashboardFeed(); 
                 
             } catch (error) {
-                alert("Failed to like post. Check Firebase rules for 'update' permission.");
+                alert("Failed to like post. The Firebase server rejected the request. Ensure your Firestore rules allow 'update' access (e.g., if true).");
                 console.error("Firebase Like Error:", error);
             } finally {
                 this.hideLoading();
@@ -669,6 +667,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                      <p>Loading real-time feed data from Firebase...</p></div>`;
             
             try {
+                // This call should succeed if rules are set to allow read: if true;
                 const snapshot = await this.firebaseDb.collection('feedItems').orderBy('timestamp', 'desc').limit(10).get();
                 
                 let html = '<div style="width: 100%; max-width: 600px; margin: 0 auto; padding-top: 5px;">';
@@ -1006,7 +1005,7 @@ document.addEventListener('DOMContentLoaded', () => {
             this.showLoading(`Rolling back ${fixToDelete}...`);
             try {
                 const tasksToDelete = this.state.projects.filter(p => p.baseProjectName === baseProjectName && p.fixCategory === fixToDelete);
-                if (tasksToDelete.length === 0) {
+                if (tasksToClone.length === 0) {
                     throw new Error(`No tasks found to delete for ${fixToDelete}.`);
                 }
         
