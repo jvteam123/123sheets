@@ -8,14 +8,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 SCOPES: "https://www.googleapis.com/auth/spreadsheets",
             },
             // >>> NEW: FIREBASE CONFIG - UPDATED WITH PROVIDED CREDENTIALS <<<
-            firebase: {
-                API_KEY: "AIzaSyA1rWP0ky1L-4TqCwtm0OZZSa76EuymP8o",
-                AUTH_DOMAIN: "mysocial-3b3fc.firebaseapp.com",
-                PROJECT_ID: "mysocial-3b3fc",
-                STORAGE_BUCKET: "mysocial-3b3fc.firebasestorage.app",
-                MESSAGING_SENDER_ID: "126693884353",
-                APP_ID: "1:126693884353:web:2c0af86f20a7e9c8142f40",
-                // Note: measurementId is not needed for the compat initialization used here.
+           firebase: {
+                // Keys changed from uppercase (e.g., API_KEY) to camelCase (e.g., apiKey)
+                apiKey: "AIzaSyA1rWP0ky1L-4TqCwtm0OZZSa76EuymP8o",
+                authDomain: "mysocial-3b3fc.firebaseapp.com",
+                projectId: "mysocial-3b3fc",
+                storageBucket: "mysocial-3b3fc.firebasestorage.app",
+                messagingSenderId: "126693884353",
+                appId: "1:126693884353:web:2c0af86f20a7e9c8142f40",
             },
             // >>> END NEW <<<
             cacheDuration: 5 * 60 * 1000, // 5 minutes in milliseconds
