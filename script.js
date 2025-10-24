@@ -7,14 +7,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 SPREADSHEET_ID: "18uNdS6FdhiUEw0SN4o4BNos1KRCdWorVvmTDAL9QD_Q",
                 SCOPES: "https://www.googleapis.com/auth/spreadsheets",
             },
-            // >>> NEW: FIREBASE CONFIG (REPLACE PLACEHOLDERS) <<<
+            // >>> NEW: FIREBASE CONFIG - UPDATED WITH PROVIDED CREDENTIALS <<<
             firebase: {
-                API_KEY: "AIzaSyA1rWP0ky1L-4TqCwtm0OZZSa76EuymP8o", 
+                API_KEY: "AIzaSyA1rWP0ky1L-4TqCwtm0OZZSa76EuymP8o",
                 AUTH_DOMAIN: "mysocial-3b3fc.firebaseapp.com",
                 PROJECT_ID: "mysocial-3b3fc",
                 STORAGE_BUCKET: "mysocial-3b3fc.firebasestorage.app",
                 MESSAGING_SENDER_ID: "126693884353",
-                APP_ID: "1:126693884353:web:2c0af86f20a7e9c8142f40"
+                APP_ID: "1:126693884353:web:2c0af86f20a7e9c8142f40",
+                // Note: measurementId is not needed for the compat initialization used here.
             },
             // >>> END NEW <<<
             cacheDuration: 5 * 60 * 1000, // 5 minutes in milliseconds
@@ -31,7 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         },
         tokenClient: null,
-        firebaseDb: null, // NEW: Firestore instance
+        firebaseDb: null, 
         state: {
             projects: [],
             users: [],
@@ -56,9 +57,9 @@ document.addEventListener('DOMContentLoaded', () => {
         init() {
             this.setupDOMReferences();
             this.attachEventListeners();
-            this.switchView('feed'); // MODIFIED: Default view is now the 'feed'
+            this.switchView('feed'); 
             gapi.load('client', this.initializeGapiClient.bind(this));
-            this.initializeFirebase(); // NEW CALL
+            this.initializeFirebase(); 
         },
         async initializeGapiClient() {
             try {
@@ -72,19 +73,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.handleSignedOutUser();
             }
         },
-        // NEW FUNCTION: Firebase Setup
+        // UPDATED FUNCTION: Firebase Setup
         initializeFirebase() {
             try {
                 const firebaseConfig = this.config.firebase;
-                if (firebaseConfig.PROJECT_ID && firebaseConfig.PROJECT_ID.includes("YOUR_PROJECT_ID")) {
-                    console.warn("WARNING: Firebase config is not fully set up. Dashboard Feed will not function.");
-                    return;
-                }
+                // No need for placeholder check here since credentials are now populated
                 firebase.initializeApp(firebaseConfig);
                 this.firebaseDb = firebase.firestore();
                 console.log("Firebase Initialized.");
             } catch (error) {
                 console.error("Firebase Initialization Error:", error);
+                // We'll proceed without Firebase if initialization fails, 
+                // but the Feed will show the error message.
             }
         },
         initializeGsi() {
@@ -95,7 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             this.tokenClient.requestAccessToken({ prompt: 'none' });
         },
-        // ... (rest of auth handlers remain the same)
+        // ... (rest of the script is unchanged)
         handleAuthClick() {
             this.showLoading("Signing in...");
             
@@ -158,7 +158,6 @@ document.addEventListener('DOMContentLoaded', () => {
         // =================================================================================
         // == DATA HANDLING ================================================================
         // =================================================================================
-        // ... (data handling functions remain the same)
         handleApiError(err) {
             console.error("API Error:", err);
             if (err.status === 401 || err.status === 403) {
@@ -563,7 +562,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const feedContent = document.getElementById('feedContent');
             if (!this.firebaseDb) {
                 feedContent.innerHTML = `<i class="fas fa-exclamation-circle" style="font-size: 2em; color: var(--danger-color); margin-bottom: 15px;"></i>
-                                         <div style="text-align: center; max-width: 500px; margin: 0 auto;"><p>Firebase is not initialized.</p><p>Please configure the <code>firebase</code> API keys in <code>script.js</code> and ensure the Firebase SDK scripts are included in <code>index.html</code>.</p></div>`;
+                                         <div style="text-align: center; max-width: 500px; margin: 0 auto;"><p>Firebase is not initialized.</p><p>Please ensure your Firebase credentials are correctly loaded.</p></div>`;
                 return;
             }
     
