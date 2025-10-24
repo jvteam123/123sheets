@@ -58,8 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
             this.switchView('feed'); 
             gapi.load('client', this.initializeGapiClient.bind(this));
             this.initializeFirebase(); 
-            // CRITICAL FIX: Attempt to render the feed immediately, 
-            // as it relies only on Firebase Read access (which is public).
+            // CRITICAL: The feed is rendered immediately, independent of GSI status.
             this.renderDashboardFeed();
         },
         async initializeGapiClient() {
@@ -71,7 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.initializeGsi();
             } catch (error) {
                 console.error("GAPI Error: Failed to initialize GAPI client.", error);
-                this.handleSignedOutUser();
+                // No longer calling handleSignedOutUser to avoid loading delay
             }
         },
         initializeFirebase() {
@@ -90,6 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 scope: this.config.google.SCOPES,
                 callback: this.handleTokenResponse.bind(this),
             });
+            // Try silent auth to see if user is already signed in for sheets
             this.tokenClient.requestAccessToken({ prompt: 'none' });
         },
         handleAuthClick() {
@@ -100,6 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 alert("Sign-in timed out. Please disable your pop-up blocker and try again. If the issue persists, you may need to allow third-party cookies for Google's sign-in service in your browser settings.");
             }, 20000);
 
+            // Force consent prompt for the user to sign in
             this.tokenClient.requestAccessToken({ prompt: 'consent' });
         },
         async handleTokenResponse(resp) {
@@ -112,7 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 gapi.client.setToken(resp);
                 this.handleAuthorizedUser();
             } else {
-                console.log("Sign-in failed or was cancelled by the user.");
+                console.log("Silent sign-in failed or was cancelled by the user.");
                 this.handleSignedOutUser();
             }
         },
@@ -128,12 +129,18 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         },
         async handleAuthorizedUser() {
+            // NOTE: We only need to load sheets data and UI here
             document.body.classList.remove('login-view-active');
             this.elements.authWrapper.style.display = 'none';
             this.elements.dashboardWrapper.style.display = 'flex';
-            this.elements.loggedInUser.textContent = `Signed In`;
             
-            // Only load sheets data here, as the feed data is handled by a separate call in init()
+            // Check if user is signed in to GSI and update display
+            const authInstance = gapi.auth2.getAuthInstance();
+            const userProfile = authInstance.currentUser.get().getBasicProfile();
+            const userName = userProfile ? userProfile.getName() : "Signed In (Limited)";
+
+            this.elements.loggedInUser.textContent = userName;
+            
             if (!this.state.isAppInitialized) {
                 await this.loadDataFromSheets();
                 this.state.isAppInitialized = true;
@@ -144,14 +151,12 @@ document.addEventListener('DOMContentLoaded', () => {
             this.updateDashboardHeaderStatus(); 
         },
         handleSignedOutUser() {
+            // Note: This is now only called when GSI fails or user signs out
             gapi.client.setToken(null);
             this.hideLoading();
-            document.body.classList.add('login-view-active');
-            this.elements.authWrapper.style.display = 'block';
-            this.elements.dashboardWrapper.style.display = 'none';
+            this.elements.loggedInUser.textContent = "Not Signed In";
             this.state.isAppInitialized = false;
         },
-
 
         // =================================================================================
         // == DATA HANDLING ================================================================
@@ -159,7 +164,7 @@ document.addEventListener('DOMContentLoaded', () => {
         handleApiError(err) {
             console.error("API Error:", err);
             if (err.status === 401 || err.status === 403) {
-                 alert("Your session has expired or you do not have permission. Please sign in again.");
+                 alert("Your Google Sheets session has expired or you do not have permission. Please sign in again.");
                  this.handleSignoutClick();
                  return true;
             }
@@ -241,6 +246,12 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         async updateRowInSheet(sheetName, rowIndex, dataObject) {
             this.showLoading("Saving...");
+            // CRITICAL: Check if Sheets is authorized before trying to write.
+            if (!gapi.auth2.getAuthInstance().isSignedIn.get()) {
+                alert("Operation failed: You must be signed in to edit Sheet data.");
+                this.hideLoading();
+                return;
+            }
             try {
                 const headersResult = await gapi.client.sheets.spreadsheets.values.get({
                     spreadsheetId: this.config.google.SPREADSHEET_ID,
@@ -276,6 +287,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         },
         async appendRowsToSheet(sheetName, rows) {
+            // CRITICAL: Check if Sheets is authorized before trying to write.
+             if (!gapi.auth2.getAuthInstance().isSignedIn.get()) {
+                alert("Operation failed: You must be signed in to edit Sheet data.");
+                this.hideLoading();
+                return;
+            }
             try {
                 await gapi.client.sheets.spreadsheets.values.append({
                     spreadsheetId: this.config.google.SPREADSHEET_ID, range: `${sheetName}!A1`,
@@ -289,6 +306,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         },
         async deleteSheetRows(sheetName, rowsToDelete) {
+             // CRITICAL: Check if Sheets is authorized before trying to write.
+             if (!gapi.auth2.getAuthInstance().isSignedIn.get()) {
+                alert("Operation failed: You must be signed in to delete Sheet data.");
+                this.hideLoading();
+                return;
+            }
             this.showLoading("Deleting rows...");
             try {
                 if (rowsToDelete.length === 0) return;
@@ -585,7 +608,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             this.showLoading("Posting update to feed...");
             
-            // Bypass GSI check and use fallback user (User requested 'allow all')
+            // Bypass GSI check and use fallback user 
             let userName = "Anonymous Poster";
             try {
                 // Try to get the name if GSI happened to complete in the background
@@ -608,7 +631,7 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             try {
-                // This call will only succeed if Firebase Rules are set to 'allow create: if true;'
+                // This call will succeed because we rely on 'allow create: if true;' rule
                 await this.firebaseDb.collection('feedItems').add(newPost);
                 
                 this.elements.newFeedItemForm.reset();
@@ -629,7 +652,7 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const docRef = this.firebaseDb.collection('feedItems').doc(docId);
                 
-                // This transaction will only succeed if Firebase Rules are set to 'allow update: if true;'
+                // This transaction will succeed if Firebase Rules are set to 'allow update: if true;'
                 await this.firebaseDb.runTransaction(async (transaction) => {
                     const doc = await transaction.get(docRef);
                     if (!doc.exists) {
@@ -725,6 +748,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                         &bull; <i class="fas fa-clock"></i> ${timestamp}
                                     </small>
                                     
+                                    <!-- Interaction Buttons -->
                                     <div class="interaction-bar" style="margin-top: 10px; display: flex; gap: 20px; border-top: 1px solid #e0e0e0; padding-top: 10px;">
                                         <button onclick="ProjectTrackerApp.handleLikeClick('${docId}')" style="background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 5px;">
                                             <i class="far fa-thumbs-up"></i> <span>Like (${likes})</span>
@@ -782,6 +806,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
         
+            // CRITICAL: Check if Sheets is authorized before trying to write.
+             if (!gapi.auth2.getAuthInstance().isSignedIn.get()) {
+                alert("Operation failed: You must be signed in to add Sheets data.");
+                this.hideLoading();
+                submitBtn.disabled = false;
+                return;
+            }
+
             const gsd = document.getElementById('gsd').value; 
             const batchId = `batch_${Date.now()}`;
             
@@ -923,6 +955,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (!confirm(`This will create new '${toFix}' tasks for all '${fromFix}' areas in project '${this.formatProjectName(baseProjectName)}'. The original tech will be assigned. Continue?`)) return;
             this.showLoading(`Releasing ${fromFix} to ${toFix}...`);
+
+            // CRITICAL: Check if Sheets is authorized before trying to write.
+             if (!gapi.auth2.getAuthInstance().isSignedIn.get()) {
+                alert("Operation failed: You must be signed in to release data.");
+                this.hideLoading();
+                return;
+            }
+
             try {
                 const tasksToClone = this.state.projects.filter(p => p.baseProjectName === baseProjectName && p.fixCategory === fromFix);
                 if (tasksToClone.length === 0) throw new Error(`No tasks found for ${baseProjectName} in ${fromFix}.`);
@@ -965,6 +1005,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const numToAdd = parseInt(prompt("How many extra areas do you want to add?", "1"), 10);
             if (isNaN(numToAdd) || numToAdd < 1) return; 
             this.showLoading(`Adding ${numToAdd} area(s)...`);
+
+            // CRITICAL: Check if Sheets is authorized before trying to write.
+             if (!gapi.auth2.getAuthInstance().isSignedIn.get()) {
+                alert("Operation failed: You must be signed in to add Sheet data.");
+                this.hideLoading();
+                return;
+            }
+
             try {
                 const projectTasks = this.state.projects.filter(p => p.baseProjectName === baseProjectName && p.fixCategory === 'Fix1');
                 if (projectTasks.length === 0) throw new Error(`Could not find project: ${baseProjectName}`);
@@ -1006,6 +1054,14 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         async handleRollback(baseProjectName, fixToDelete) {
             if (!confirm(`DANGER: This will permanently delete all '${fixToDelete}' tasks for project '${this.formatProjectName(baseProjectName)}'. This cannot be undone. Continue?`)) return;
+            
+            // CRITICAL: Check if Sheets is authorized before trying to write.
+             if (!gapi.auth2.getAuthInstance().isSignedIn.get()) {
+                alert("Operation failed: You must be signed in to delete Sheet data.");
+                this.hideLoading();
+                return;
+            }
+
             this.showLoading(`Rolling back ${fixToDelete}...`);
             try {
                 const tasksToClone = this.state.projects.filter(p => p.baseProjectName === baseProjectName && p.fixCategory === fixToDelete);
@@ -1034,6 +1090,13 @@ document.addEventListener('DOMContentLoaded', () => {
         async handleDeleteProject(baseProjectName) {
             if (!confirm(`EXTREME DANGER: This will permanently delete the ENTIRE project '${this.formatProjectName(baseProjectName)}', including all of its fix stages. This cannot be undone. Are you absolutely sure?`)) return;
             
+            // CRITICAL: Check if Sheets is authorized before trying to write.
+             if (!gapi.auth2.getAuthInstance().isSignedIn.get()) {
+                alert("Operation failed: You must be signed in to delete Sheet data.");
+                this.hideLoading();
+                return;
+            }
+
             this.showLoading("Deleting project...");
             try {
                 const tasksToDelete = this.state.projects.filter(p => p.baseProjectName === baseProjectName);
@@ -1057,6 +1120,14 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!isSilent) {
                 if (!confirm("This will reorganize the entire 'Projects' sheet by Project Name and Fix Stage, inserting blank rows and applying colors. This action cannot be undone. Are you sure?")) return;
             }
+
+            // CRITICAL: Check if Sheets is authorized before trying to write.
+             if (!gapi.auth2.getAuthInstance().isSignedIn.get()) {
+                 if (!isSilent) alert("Operation failed: You must be signed in to reorganize Sheet data.");
+                this.hideLoading();
+                return;
+            }
+
             this.showLoading("Reorganizing sheet...");
             try {
                 localStorage.removeItem('projectTrackerCache');
@@ -1473,6 +1544,13 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             const rowIndex = this.elements.userRow.value;
 
+            // CRITICAL: Check if Sheets is authorized before trying to write.
+             if (!gapi.auth2.getAuthInstance().isSignedIn.get()) {
+                alert("Operation failed: You must be signed in to edit Sheet data.");
+                this.hideLoading();
+                return;
+            }
+
             if (rowIndex) {
                 user._row = rowIndex;
                 await this.updateRowInSheet(this.config.sheetNames.USERS, rowIndex, user);
@@ -1492,6 +1570,12 @@ document.addEventListener('DOMContentLoaded', () => {
             this.renderUserManagement();
         },
         async handleDeleteUser(user) {
+             // CRITICAL: Check if Sheets is authorized before trying to write.
+             if (!gapi.auth2.getAuthInstance().isSignedIn.get()) {
+                alert("Operation failed: You must be signed in to delete Sheet data.");
+                this.hideLoading();
+                return;
+            }
             if (confirm(`Are you sure you want to delete user: ${user.name}?`)) {
                 await this.deleteSheetRows(this.config.sheetNames.USERS, [user._row]);
                 await this.loadDataFromSheets(true);
@@ -1548,6 +1632,13 @@ document.addEventListener('DOMContentLoaded', () => {
         async handleDisputeFormSubmit(event) {
             event.preventDefault();
             this.showLoading("Saving dispute...");
+
+            // CRITICAL: Check if Sheets is authorized before trying to write.
+             if (!gapi.auth2.getAuthInstance().isSignedIn.get()) {
+                alert("Operation failed: You must be signed in to submit a dispute.");
+                this.hideLoading();
+                return;
+            }
 
             const disputeData = {
                 id: `dispute_${Date.now()}`,
@@ -1663,6 +1754,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const dispute = this.state.disputes.find(d => d.id === disputeId);
             if (!dispute) return;
 
+             // CRITICAL: Check if Sheets is authorized before trying to write.
+             if (!gapi.auth2.getAuthInstance().isSignedIn.get()) {
+                alert("Operation failed: You must be signed in to update Sheet data.");
+                this.hideLoading();
+                return;
+            }
+
             dispute.status = newStatus;
             await this.updateRowInSheet(this.config.sheetNames.DISPUTES, dispute._row, dispute);
             
@@ -1671,6 +1769,13 @@ document.addEventListener('DOMContentLoaded', () => {
         async handleDeleteDispute(disputeId) {
             const dispute = this.state.disputes.find(d => d.id === disputeId);
             if (!dispute) return;
+
+             // CRITICAL: Check if Sheets is authorized before trying to write.
+             if (!gapi.auth2.getAuthInstance().isSignedIn.get()) {
+                alert("Operation failed: You must be signed in to delete Sheet data.");
+                this.hideLoading();
+                return;
+            }
 
             if (confirm(`Are you sure you want to delete the dispute for project "${this.formatProjectName(dispute.projectName)}"?`)) {
                 try {
@@ -1748,6 +1853,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (!confirm("This will check and correct the headers for all sheets. This won't affect your data, but it's recommended to have a backup. Continue?")) return;
             
+            // CRITICAL: Check if Sheets is authorized before trying to write.
+             if (!gapi.auth2.getAuthInstance().isSignedIn.get()) {
+                alert("Operation failed: You must be signed in to edit Sheet data.");
+                this.hideLoading();
+                return;
+            }
+
             this.showLoading("Verifying and Fixing DB Headers...");
             try {
                 const sheetConfigs = [
@@ -1818,7 +1930,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const dateRangeStr = `from ${startDate.toLocaleDateString()} to ${new Date(endDate - 1).toLocaleDateString()}`;
         
             if (!confirm(`Are you sure you want to archive all completed projects ${dateRangeStr}? This cannot be undone.`)) return;
-        
+
+            // CRITICAL: Check if Sheets is authorized before trying to write.
+             if (!gapi.auth2.getAuthInstance().isSignedIn.get()) {
+                alert("Operation failed: You must be signed in to archive Sheet data.");
+                this.hideLoading();
+                return;
+            }
+
             this.showLoading("Archiving completed projects...");
             try {
                 const projectsToArchive = this.state.projects.filter(p => {
@@ -2012,6 +2131,13 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             const rowIndex = this.elements.extraRow.value;
 
+            // CRITICAL: Check if Sheets is authorized before trying to write.
+             if (!gapi.auth2.getAuthInstance().isSignedIn.get()) {
+                alert("Operation failed: You must be signed in to edit Sheet data.");
+                this.hideLoading();
+                return;
+            }
+
             if (rowIndex) {
                 extra._row = rowIndex;
                 await this.updateRowInSheet(this.config.sheetNames.EXTRAS, rowIndex, extra);
@@ -2028,6 +2154,12 @@ document.addEventListener('DOMContentLoaded', () => {
             this.renderExtrasManagement();
         },
         async handleDeleteExtra(extraId) {
+             // CRITICAL: Check if Sheets is authorized before trying to write.
+             if (!gapi.auth2.getAuthInstance().isSignedIn.get()) {
+                alert("Operation failed: You must be signed in to delete Sheet data.");
+                this.hideLoading();
+                return;
+            }
             const extra = this.state.extras.find(e => e.id === extraId);
             if (!extra) return;
 
@@ -2186,6 +2318,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (!confirm(`This will complete the current task and create a new follow-up part. Continue?`)) return;
             this.showLoading("Creating follow-up task...");
+
+            // CRITICAL: Check if Sheets is authorized before trying to write.
+             if (!gapi.auth2.getAuthInstance().isSignedIn.get()) {
+                alert("Operation failed: You must be signed in to modify Sheet data.");
+                this.hideLoading();
+                return;
+            }
 
             try {
                 const updates = {
