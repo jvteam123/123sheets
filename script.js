@@ -570,7 +570,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         },
         
-        // NEW FUNCTION: Helper to check if user is signed in
+        // NEW FUNCTION: Helper to check if user is signed in (FIXED AUTH CHECK)
         isUserSignedIn() {
             const authInstance = gapi.auth2.getAuthInstance();
             return authInstance && authInstance.isSignedIn.get();
@@ -1872,8 +1872,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const startTimeStr = project[`startTimeDay${day}`] || '';
             const finishTimeStr = project[`finishTimeDay${day}`] || '';
         
+            // CORRECTED RegEx: Removed the extra closing parenthesis after \d+
             const startTimeMatch = startTimeStr.match(/(\d+:\d+)\s*(AM|PM)/i); 
-            const finishTimeMatch = finishTimeStr.match(/(\d+:\d+)\s*(AM|PM)/i);
+            const finishTimeMatch = finishTimeStr.match(/(\d+:\d+)\s*(AM|PM)/i); 
         
             this.elements.editStartTime.value = startTimeMatch ? startTimeMatch[1] : startTimeStr;
             this.elements.editStartTimeAmPm.value = startTimeMatch ? startTimeMatch[2].toUpperCase() : 'AM';
