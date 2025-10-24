@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 SPREADSHEET_ID: "18uNdS6FdhiUEw0SN4o4BNos1KRCdWorVvmTDAL9QD_Q",
                 SCOPES: "https://www.googleapis.com/auth/spreadsheets",
             },
-            // Corrected casing for Firebase config keys
+            // Corrected casing for Firebase config keys (CRITICAL FIX)
             firebase: {
                 apiKey: "AIzaSyA1rWP0ky1L-4TqCwtm0OZZSa76EuymP8o",
                 authDomain: "mysocial-3b3fc.firebaseapp.com",
@@ -430,12 +430,12 @@ document.addEventListener('DOMContentLoaded', () => {
             this.elements.closeArchiveModalBtn.onclick = () => this.elements.archiveModal.classList.remove('is-open');
             this.elements.copyArchiveBtn.onclick = () => this.handleCopyArchive();
 
-            // >>> NEW NAVIGATION LISTENERS <<<
+            // >>> NEW NAVIGATION/FEED LISTENERS <<<
             this.elements.openDashboardBtn.onclick = () => this.switchView('feed'); 
             this.elements.openProjectListBtn.onclick = () => this.switchView('list'); 
             this.elements.refreshFeedBtn.onclick = () => this.handleRefreshFeed(); 
-            this.elements.newFeedItemForm.addEventListener('submit', (e) => this.handleNewFeedItemSubmit(e)); // ADDED POST FORM LISTENER
-            // >>> END NEW NAVIGATION LISTENERS <<<
+            this.elements.newFeedItemForm.addEventListener('submit', (e) => this.handleNewFeedItemSubmit(e)); 
+            // >>> END NEW NAVIGATION/FEED LISTENERS <<<
 
             this.elements.openDowntimePageBtn.onclick = () => { window.location.href = 'downtime.html'; };
             this.elements.openProjectSettingsBtn.onclick = () => this.switchView('settings');
@@ -570,17 +570,32 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         },
         
+        // NEW FUNCTION: Helper to check if user is signed in
+        isUserSignedIn() {
+            const authInstance = gapi.auth2.getAuthInstance();
+            return authInstance && authInstance.isSignedIn.get();
+        },
+
         async handleNewFeedItemSubmit(event) {
             event.preventDefault();
+
+            // CHECK: Ensure user is signed in before posting
+            if (!this.isUserSignedIn()) {
+                 alert("You must sign in with Google before posting an update.");
+                 this.handleAuthClick(); 
+                 return;
+            }
+            
             this.showLoading("Posting update to feed...");
             
-            // Get signed-in user's email to display in the post
-            const userEmail = gapi.auth2.getAuthInstance().currentUser.get().getBasicProfile().getEmail();
+            const userProfile = gapi.auth2.getAuthInstance().currentUser.get().getBasicProfile();
+            const userEmail = userProfile.getEmail();
+            const userName = userProfile.getName(); // Use full name if available, otherwise fallback to email prefix
 
             const newPost = {
                 title: this.elements.feedTitle.value,
                 content: this.elements.feedContent.value,
-                user: userEmail.split('@')[0], 
+                user: userName || userEmail.split('@')[0], 
                 timestamp: firebase.firestore.FieldValue.serverTimestamp(), 
                 likes: 0,
                 comments: 0,
@@ -594,7 +609,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.renderDashboardFeed(); 
                 
             } catch (error) {
-                alert("Error posting feed item. Check Firebase write rules.");
+                alert("Error posting feed item. Check Firebase write rules or network connection.");
                 console.error("Firebase Write Error:", error);
             } finally {
                 this.hideLoading();
@@ -602,6 +617,13 @@ document.addEventListener('DOMContentLoaded', () => {
         },
 
         async handleLikeClick(docId) {
+            // Check sign-in status before allowing a like operation
+            if (!this.isUserSignedIn()) {
+                 alert("You must be signed in to like a post.");
+                 this.handleAuthClick();
+                 return;
+            }
+
             this.showLoading("Updating like count...");
             try {
                 const docRef = this.firebaseDb.collection('feedItems').doc(docId);
@@ -630,7 +652,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const feedContent = document.getElementById('feedContent');
             const postFormContainer = document.querySelector('#feedDashboardContainer > .filter-section');
             
-            // Apply the new CSS class to the post form container
+            // Apply the new CSS class to the post form container (part of UI fix)
             if (postFormContainer) {
                 postFormContainer.classList.remove('filter-section');
                 postFormContainer.classList.add('post-form-card');
@@ -651,6 +673,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 let html = '<div style="width: 100%; max-width: 600px; margin: 0 auto; padding-top: 5px;">';
                 
+                // Helper to safely encode text for display (prevents HTML injection)
+                const escapeHTML = (str) => {
+                    if (!str) return '';
+                    const div = document.createElement('div');
+                    div.textContent = str;
+                    return div.innerHTML;
+                };
+
                 if (snapshot.empty) {
                     const projectId = this.config.firebase.projectId;
                     const firestoreLink = `https://console.firebase.google.com/project/${projectId}/firestore/data/~2F`;
@@ -680,15 +710,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         const likes = item.likes || 0;
                         const comments = item.comments || 0; 
                         
-                        // Function to safely encode text for display (prevents HTML injection)
-                        const escapeHTML = (str) => {
-                            if (!str) return '';
-                            const div = document.createElement('div');
-                            div.textContent = str;
-                            return div.innerHTML;
-                        };
-                        
-                        // Use escaped HTML for title and content
                         const safeTitle = escapeHTML(item.title || 'Untitled Update');
                         const safeContent = escapeHTML(item.content || 'No content.');
 
@@ -1851,8 +1872,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const startTimeStr = project[`startTimeDay${day}`] || '';
             const finishTimeStr = project[`finishTimeDay${day}`] || '';
         
-            const startTimeMatch = startTimeStr.match(/(\d+:\d+)\s*(AM|PM)/i);
-            const finishTimeMatch = finishTimeStr.match(/(\d+:\d+)\s*(AM|PM)/i);
+            const startTimeMatch = startTimeStr.match(/(\d+):\d+)\s*(AM|PM)/i);
+            const finishTimeMatch = finishTimeStr.match(/(\d+):\d+)\s*(AM|PM)/i);
         
             this.elements.editStartTime.value = startTimeMatch ? startTimeMatch[1] : startTimeStr;
             this.elements.editStartTimeAmPm.value = startTimeMatch ? startTimeMatch[2].toUpperCase() : 'AM';
