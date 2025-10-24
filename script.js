@@ -7,9 +7,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 SPREADSHEET_ID: "18uNdS6FdhiUEw0SN4o4BNos1KRCdWorVvmTDAL9QD_Q",
                 SCOPES: "https://www.googleapis.com/auth/spreadsheets",
             },
-            // >>> NEW: FIREBASE CONFIG - UPDATED WITH PROVIDED CREDENTIALS <<<
-           firebase: {
-                // Keys changed from uppercase (e.g., API_KEY) to camelCase (e.g., apiKey)
+            // Corrected casing for Firebase config keys
+            firebase: {
                 apiKey: "AIzaSyA1rWP0ky1L-4TqCwtm0OZZSa76EuymP8o",
                 authDomain: "mysocial-3b3fc.firebaseapp.com",
                 projectId: "mysocial-3b3fc",
@@ -17,7 +16,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 messagingSenderId: "126693884353",
                 appId: "1:126693884353:web:2c0af86f20a7e9c8142f40",
             },
-            // >>> END NEW <<<
             cacheDuration: 5 * 60 * 1000, // 5 minutes in milliseconds
             sheetNames: { PROJECTS: "Projects", USERS: "Users", DISPUTES: "Disputes", EXTRAS: "Extras", ARCHIVE: "Archive", NOTIFICATIONS: "Notifications" },
             HEADER_MAP: { 'id': 'id', 'Fix Cat': 'fixCategory', 'Project Name': 'baseProjectName', 'Area/Task': 'areaTask', 'GSD': 'gsd', 'Assigned To': 'assignedTo', 'Status': 'status', 'Day 1 Start': 'startTimeDay1', 'Day 1 Finish': 'finishTimeDay1', 'Day 1 Break': 'breakDurationMinutesDay1', 'Day 2 Start': 'startTimeDay2', 'Day 2 Finish': 'finishTimeDay2', 'Day 2 Break': 'breakDurationMinutesDay2', 'Day 3 Start': 'startTimeDay3', 'Day 3 Finish': 'finishTimeDay3', 'Day 3 Break': 'breakDurationMinutesDay3', 'Day 4 Start': 'startTimeDay4', 'Day 4 Finish': 'finishTimeDay4', 'Day 4 Break': 'breakDurationMinutesDay4', 'Day 5 Start': 'startTimeDay5', 'Day 5 Finish': 'finishTimeDay5', 'Day 5 Break': 'breakDurationMinutesDay5', 'Total (min)': 'totalMinutes', 'Last Modified': 'lastModifiedTimestamp', 'Batch ID': 'batchId' },
@@ -73,18 +71,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.handleSignedOutUser();
             }
         },
-        // UPDATED FUNCTION: Firebase Setup
         initializeFirebase() {
             try {
                 const firebaseConfig = this.config.firebase;
-                // No need for placeholder check here since credentials are now populated
                 firebase.initializeApp(firebaseConfig);
                 this.firebaseDb = firebase.firestore();
                 console.log("Firebase Initialized.");
             } catch (error) {
                 console.error("Firebase Initialization Error:", error);
-                // We'll proceed without Firebase if initialization fails, 
-                // but the Feed will show the error message.
             }
         },
         initializeGsi() {
@@ -95,7 +89,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             this.tokenClient.requestAccessToken({ prompt: 'none' });
         },
-        // ... (rest of the script is unchanged)
         handleAuthClick() {
             this.showLoading("Signing in...");
             
@@ -144,6 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.switchView('feed');
             }
             this.renderExtrasMenu();
+            this.updateDashboardHeaderStatus(); // Call to update header status
         },
         handleSignedOutUser() {
             gapi.client.setToken(null);
@@ -190,6 +184,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         this.filterAndRenderProjects();
                         this.renderExtrasMenu();
                         this.renderNotificationBell();
+                        this.updateDashboardHeaderStatus(); // Call to update header status
                         return;
                     }
                 }
@@ -231,6 +226,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.filterAndRenderProjects();
                 this.renderExtrasMenu();
                 this.renderNotificationBell();
+                this.updateDashboardHeaderStatus(); // Call to update header status
             } catch (err) {
                 if (!this.handleApiError(err)) {
                     alert("Could not load data. Check Spreadsheet ID and sharing permissions.");
@@ -346,6 +342,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 feedDashboardContainer: document.getElementById('feedDashboardContainer'), // NEW: Feed Container
                 projectListView: document.getElementById('projectListView'), // MODIFIED: Old Dashboard Container
                 refreshFeedBtn: document.getElementById('refreshFeedBtn'), // NEW: Feed refresh button
+                
+                // NEW FEED REFERENCES
+                newFeedItemForm: document.getElementById('newFeedItemForm'),
+                feedTitle: document.getElementById('feedTitle'),
+                feedContent: document.getElementById('feedContent'),
+                dashboardStatusLabel: document.getElementById('dashboardStatusLabel'), // ADDED STATUS LABEL
 
                 openDowntimePageBtn: document.getElementById('openDowntimePageBtn'),
                 openProjectSettingsBtn: document.getElementById('openProjectSettingsBtn'), 
@@ -428,11 +430,12 @@ document.addEventListener('DOMContentLoaded', () => {
             this.elements.closeArchiveModalBtn.onclick = () => this.elements.archiveModal.classList.remove('is-open');
             this.elements.copyArchiveBtn.onclick = () => this.handleCopyArchive();
 
-            // >>> MODIFIED/NEW NAVIGATION LISTENERS <<<
-            this.elements.openDashboardBtn.onclick = () => this.switchView('feed'); // MODIFIED: Now opens feed
-            this.elements.openProjectListBtn.onclick = () => this.switchView('list'); // NEW: Opens project list
-            this.elements.refreshFeedBtn.onclick = () => this.handleRefreshFeed(); // NEW: Refreshes feed
-            // >>> END MODIFIED/NEW NAVIGATION LISTENERS <<<
+            // >>> NEW NAVIGATION LISTENERS <<<
+            this.elements.openDashboardBtn.onclick = () => this.switchView('feed'); 
+            this.elements.openProjectListBtn.onclick = () => this.switchView('list'); 
+            this.elements.refreshFeedBtn.onclick = () => this.handleRefreshFeed(); 
+            this.elements.newFeedItemForm.addEventListener('submit', (e) => this.handleNewFeedItemSubmit(e)); // ADDED POST FORM LISTENER
+            // >>> END NEW NAVIGATION LISTENERS <<<
 
             this.elements.openDowntimePageBtn.onclick = () => { window.location.href = 'downtime.html'; };
             this.elements.openProjectSettingsBtn.onclick = () => this.switchView('settings');
@@ -493,10 +496,20 @@ document.addEventListener('DOMContentLoaded', () => {
             }, this.config.cacheDuration);
         },
         
-        // NEW FUNCTION
         handleRefreshFeed() {
             this.renderDashboardFeed();
             this.showMessage("Feed refreshed from Firebase.");
+        },
+
+        updateDashboardHeaderStatus() {
+            const projectCount = this.state.projects.length;
+            if (this.elements.dashboardStatusLabel) {
+                if (projectCount > 0) {
+                    this.elements.dashboardStatusLabel.textContent = `(${projectCount} Tasks Loaded)`;
+                } else {
+                    this.elements.dashboardStatusLabel.textContent = `(No Projects Loaded)`;
+                }
+            }
         },
 
         switchView(viewName) {
@@ -509,8 +522,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         
             // >>> MODIFIED VIEW RESET <<<
-            this.elements.feedDashboardContainer.style.display = 'none'; // NEW
-            this.elements.projectListView.style.display = 'none'; // MODIFIED
+            this.elements.feedDashboardContainer.style.display = 'none'; 
+            this.elements.projectListView.style.display = 'none'; 
             this.elements.projectSettingsView.style.display = 'none';
             this.elements.tlSummaryView.style.display = 'none';
             this.elements.userManagementView.style.display = 'none';
@@ -518,7 +531,7 @@ document.addEventListener('DOMContentLoaded', () => {
             this.elements.adminSettingsView.style.display = 'none';
         
             this.elements.openDashboardBtn.classList.remove('active');
-            this.elements.openProjectListBtn.classList.remove('active'); // NEW button
+            this.elements.openProjectListBtn.classList.remove('active'); 
             this.elements.openProjectSettingsBtn.classList.remove('active');
             this.elements.openTlSummaryBtn.classList.remove('active');
             this.elements.openUserManagementBtn.classList.remove('active');
@@ -526,11 +539,11 @@ document.addEventListener('DOMContentLoaded', () => {
             this.elements.openAdminSettingsBtn.classList.remove('active');
             // >>> END MODIFIED VIEW RESET <<<
         
-            if (viewName === 'feed') { // NEW 'feed' view
+            if (viewName === 'feed') { 
                 this.elements.feedDashboardContainer.style.display = 'flex';
                 this.elements.openDashboardBtn.classList.add('active');
                 this.renderDashboardFeed();
-            } else if (viewName === 'list') { // NEW 'list' view for old dashboard table
+            } else if (viewName === 'list') { 
                 this.elements.projectListView.style.display = 'flex';
                 this.elements.openProjectListBtn.classList.add('active');
                 this.filterAndRenderProjects();
@@ -557,7 +570,62 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         },
         
-        // NEW FUNCTION: Placeholder to render the feed
+        async handleNewFeedItemSubmit(event) {
+            event.preventDefault();
+            this.showLoading("Posting update to feed...");
+            
+            // Get signed-in user's email to display in the post
+            const userEmail = gapi.auth2.getAuthInstance().currentUser.get().getBasicProfile().getEmail();
+
+            const newPost = {
+                title: this.elements.feedTitle.value,
+                content: this.elements.feedContent.value,
+                user: userEmail.split('@')[0], 
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(), 
+                likes: 0,
+                comments: 0,
+            };
+
+            try {
+                await this.firebaseDb.collection('feedItems').add(newPost);
+                
+                this.elements.newFeedItemForm.reset();
+                this.showMessage("Update posted successfully!");
+                this.renderDashboardFeed(); 
+                
+            } catch (error) {
+                alert("Error posting feed item. Check Firebase write rules.");
+                console.error("Firebase Write Error:", error);
+            } finally {
+                this.hideLoading();
+            }
+        },
+
+        async handleLikeClick(docId) {
+            this.showLoading("Updating like count...");
+            try {
+                const docRef = this.firebaseDb.collection('feedItems').doc(docId);
+                
+                await this.firebaseDb.runTransaction(async (transaction) => {
+                    const doc = await transaction.get(docRef);
+                    if (!doc.exists) {
+                        throw new Error("Document does not exist!");
+                    }
+                    const newLikes = (doc.data().likes || 0) + 1;
+                    transaction.update(docRef, { likes: newLikes });
+                });
+                
+                this.showMessage("Post liked!");
+                this.renderDashboardFeed(); 
+                
+            } catch (error) {
+                alert("Failed to like post. Check Firebase rules for 'update' permission.");
+                console.error("Firebase Like Error:", error);
+            } finally {
+                this.hideLoading();
+            }
+        },
+
         async renderDashboardFeed() {
             const feedContent = document.getElementById('feedContent');
             if (!this.firebaseDb) {
@@ -571,15 +639,12 @@ document.addEventListener('DOMContentLoaded', () => {
                                      <p>Loading real-time feed data from Firebase...</p>`;
             
             try {
-                // Example Firestore query: assumes you have a collection named 'feedItems'
-                // This is a placeholder, you will need to structure your Firestore data accordingly.
                 const snapshot = await this.firebaseDb.collection('feedItems').orderBy('timestamp', 'desc').limit(10).get();
                 
                 let html = '<div style="width: 100%; max-width: 700px; margin: 0 auto; padding-top: 20px;">';
                 
-                // >>> MODIFIED: ADD DEFAULT WELCOME FEED AND LOGGING <<<
                 if (snapshot.empty) {
-                    const projectId = this.config.firebase.PROJECT_ID;
+                    const projectId = this.config.firebase.projectId;
                     const firestoreLink = `https://console.firebase.google.com/project/${projectId}/firestore/data/~2F`;
                     
                     console.warn(`[FEED SETUP]: The 'feedItems' collection is currently empty. Please visit the Firebase Firestore Console to create the collection and add your first feed item: ${firestoreLink}`);
@@ -600,11 +665,13 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <a href="${firestoreLink}" target="_blank" style="color: var(--warning-color); font-weight: 600;"><i class="fas fa-external-link-alt"></i> Go to Firebase Firestore Console</a>
                              </div>`;
                 } else {
-                // >>> END MODIFIED <<<
                     snapshot.forEach(doc => {
                         const item = doc.data();
+                        const docId = doc.id; 
                         const timestamp = item.timestamp ? new Date(item.timestamp.toDate()).toLocaleString() : 'N/A';
-                        
+                        const likes = item.likes || 0;
+                        const comments = item.comments || 0; 
+
                         // Basic feed item card
                         html += `<div style="background-color: #f0f4f8; padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: left; border-left: 5px solid var(--primary-color);">
                                     <h4 style="margin: 0; color: var(--text-color);">${item.title || 'Untitled Update'}</h4>
@@ -613,6 +680,15 @@ document.addEventListener('DOMContentLoaded', () => {
                                         <i class="fas fa-user"></i> ${item.user || 'System'} 
                                         &bull; <i class="fas fa-clock"></i> ${timestamp}
                                     </small>
+                                    
+                                    <div style="margin-top: 10px; display: flex; gap: 15px; border-top: 1px solid #e0e0e0; padding-top: 10px;">
+                                        <button class="btn btn-secondary btn-small" onclick="ProjectTrackerApp.handleLikeClick('${docId}')" style="background: none; border: none; color: var(--secondary-color); padding: 0;">
+                                            <i class="fas fa-thumbs-up"></i> Like (${likes})
+                                        </button>
+                                        <button class="btn btn-secondary btn-small" onclick="alert('Comment feature is not yet implemented.')" style="background: none; border: none; color: var(--secondary-color); padding: 0;">
+                                            <i class="fas fa-comment"></i> Comment (${comments})
+                                        </button>
+                                    </div>
                                     </div>`;
                     });
                 }
@@ -1816,7 +1892,6 @@ document.addEventListener('DOMContentLoaded', () => {
             } 
         },
         showMessage(text, isError = false) {
-             // Placeholder for small temporary messages (used for feed refresh)
              console.log(isError ? `Error: ${text}` : `Message: ${text}`);
         },
         showFilterSpinner() { },
