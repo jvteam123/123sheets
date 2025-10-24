@@ -1872,8 +1872,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const startTimeStr = project[`startTimeDay${day}`] || '';
             const finishTimeStr = project[`finishTimeDay${day}`] || '';
         
-            const startTimeMatch = startTimeStr.match(/(\d+):\d+)\s*(AM|PM)/i);
-            const finishTimeMatch = finishTimeStr.match(/(\d+):\d+)\s*(AM|PM)/i);
+            const startTimeMatch = startTimeStr.match(/(\d+:\d+)\s*(AM|PM)/i); 
+            const finishTimeMatch = finishTimeStr.match(/(\d+:\d+)\s*(AM|PM)/i);
         
             this.elements.editStartTime.value = startTimeMatch ? startTimeMatch[1] : startTimeStr;
             this.elements.editStartTimeAmPm.value = startTimeMatch ? startTimeMatch[2].toUpperCase() : 'AM';
