@@ -7,6 +7,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 SPREADSHEET_ID: "18uNdS6FdhiUEw0SN4o4BNos1KRCdWorVvmTDAL9QD_Q",
                 SCOPES: "https://www.googleapis.com/auth/spreadsheets",
             },
+            // >>> NEW: FIREBASE CONFIG (REPLACE PLACEHOLDERS) <<<
+            firebase: {
+                API_KEY: "YOUR_FIREBASE_API_KEY", 
+                AUTH_DOMAIN: "YOUR_PROJECT_ID.firebaseapp.com",
+                PROJECT_ID: "YOUR_PROJECT_ID",
+                STORAGE_BUCKET: "YOUR_PROJECT_ID.appspot.com",
+                MESSAGING_SENDER_ID: "YOUR_SENDER_ID",
+                APP_ID: "YOUR_APP_ID"
+            },
+            // >>> END NEW <<<
             cacheDuration: 5 * 60 * 1000, // 5 minutes in milliseconds
             sheetNames: { PROJECTS: "Projects", USERS: "Users", DISPUTES: "Disputes", EXTRAS: "Extras", ARCHIVE: "Archive", NOTIFICATIONS: "Notifications" },
             HEADER_MAP: { 'id': 'id', 'Fix Cat': 'fixCategory', 'Project Name': 'baseProjectName', 'Area/Task': 'areaTask', 'GSD': 'gsd', 'Assigned To': 'assignedTo', 'Status': 'status', 'Day 1 Start': 'startTimeDay1', 'Day 1 Finish': 'finishTimeDay1', 'Day 1 Break': 'breakDurationMinutesDay1', 'Day 2 Start': 'startTimeDay2', 'Day 2 Finish': 'finishTimeDay2', 'Day 2 Break': 'breakDurationMinutesDay2', 'Day 3 Start': 'startTimeDay3', 'Day 3 Finish': 'finishTimeDay3', 'Day 3 Break': 'breakDurationMinutesDay3', 'Day 4 Start': 'startTimeDay4', 'Day 4 Finish': 'finishTimeDay4', 'Day 4 Break': 'breakDurationMinutesDay4', 'Day 5 Start': 'startTimeDay5', 'Day 5 Finish': 'finishTimeDay5', 'Day 5 Break': 'breakDurationMinutesDay5', 'Total (min)': 'totalMinutes', 'Last Modified': 'lastModifiedTimestamp', 'Batch ID': 'batchId' },
@@ -21,6 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         },
         tokenClient: null,
+        firebaseDb: null, // NEW: Firestore instance
         state: {
             projects: [],
             users: [],
@@ -45,8 +56,9 @@ document.addEventListener('DOMContentLoaded', () => {
         init() {
             this.setupDOMReferences();
             this.attachEventListeners();
-            this.switchView('dashboard');
+            this.switchView('feed'); // MODIFIED: Default view is now the 'feed'
             gapi.load('client', this.initializeGapiClient.bind(this));
+            this.initializeFirebase(); // NEW CALL
         },
         async initializeGapiClient() {
             try {
@@ -60,6 +72,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.handleSignedOutUser();
             }
         },
+        // NEW FUNCTION: Firebase Setup
+        initializeFirebase() {
+            try {
+                const firebaseConfig = this.config.firebase;
+                if (firebaseConfig.PROJECT_ID && firebaseConfig.PROJECT_ID.includes("YOUR_PROJECT_ID")) {
+                    console.warn("WARNING: Firebase config is not fully set up. Dashboard Feed will not function.");
+                    return;
+                }
+                firebase.initializeApp(firebaseConfig);
+                this.firebaseDb = firebase.firestore();
+                console.log("Firebase Initialized.");
+            } catch (error) {
+                console.error("Firebase Initialization Error:", error);
+            }
+        },
         initializeGsi() {
             this.tokenClient = google.accounts.oauth2.initTokenClient({
                 client_id: this.config.google.CLIENT_ID,
@@ -68,6 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             this.tokenClient.requestAccessToken({ prompt: 'none' });
         },
+        // ... (rest of auth handlers remain the same)
         handleAuthClick() {
             this.showLoading("Signing in...");
             
@@ -112,7 +140,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 await this.loadDataFromSheets();
                 this.state.isAppInitialized = true;
             } else {
-                this.filterAndRenderProjects();
+                // Rerender the correct view, usually the default 'feed'
+                this.switchView('feed');
             }
             this.renderExtrasMenu();
         },
@@ -125,9 +154,11 @@ document.addEventListener('DOMContentLoaded', () => {
             this.state.isAppInitialized = false;
         },
 
+
         // =================================================================================
         // == DATA HANDLING ================================================================
         // =================================================================================
+        // ... (data handling functions remain the same)
         handleApiError(err) {
             console.error("API Error:", err);
             if (err.status === 401 || err.status === 403) {
@@ -295,7 +326,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: document.body, authWrapper: document.getElementById('auth-wrapper'),
                 dashboardWrapper: document.querySelector('.dashboard-wrapper'), signInBtn: document.getElementById('signInBtn'),
                 loggedInUser: document.getElementById('loggedInUser'), signOutBtn: document.getElementById('signOutBtn'),
-                refreshDataBtn: document.getElementById('refreshDataBtn'),
+                refreshDataBtn: document.getElementById('refreshDataBtn'), // In projectListView
                 refreshDataBtnTlSummary: document.getElementById('refreshDataBtnTlSummary'),
                 projectTable: document.getElementById('projectTable'),
                 projectTableHead: document.getElementById('projectTable').querySelector('thead tr'), projectTableBody: document.getElementById('projectTableBody'),
@@ -309,9 +340,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 projectFilter: document.getElementById('projectFilter'),
                 fixCategoryFilter: document.getElementById('fixCategoryFilter'),
                 dayCheckboxes: { 2: document.getElementById('showDay2'), 3: document.getElementById('showDay3'), 4: document.getElementById('showDay4'), 5: document.getElementById('showDay5'),},
-                openDashboardBtn: document.getElementById('openDashboardBtn'),
+                
+                // >>> MODIFIED/NEW VIEW REFERENCES <<<
+                openDashboardBtn: document.getElementById('openDashboardBtn'), // Now opens Feed
+                openProjectListBtn: document.getElementById('openProjectListBtn'), // NEW: Projects List
+                feedDashboardContainer: document.getElementById('feedDashboardContainer'), // NEW: Feed Container
+                projectListView: document.getElementById('projectListView'), // MODIFIED: Old Dashboard Container
+                refreshFeedBtn: document.getElementById('refreshFeedBtn'), // NEW: Feed refresh button
+
                 openDowntimePageBtn: document.getElementById('openDowntimePageBtn'),
-                openProjectSettingsBtn: document.getElementById('openProjectSettingsBtn'), techDashboardContainer: document.getElementById('techDashboardContainer'),
+                openProjectSettingsBtn: document.getElementById('openProjectSettingsBtn'), 
                 projectSettingsView: document.getElementById('projectSettingsView'),
                 openTlSummaryBtn: document.getElementById('openTlSummaryBtn'), tlSummaryView: document.getElementById('tlSummaryView'),
                 summaryTableBody: document.getElementById('summaryTableBody'),
@@ -321,6 +359,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 disputeForm: document.getElementById('disputeForm'), disputesTableBody: document.getElementById('disputesTableBody'),
                 disputeStatusFilter: document.getElementById('disputeStatusFilter'),
                 openAdminSettingsBtn: document.getElementById('openAdminSettingsBtn'), adminSettingsView: document.getElementById('adminSettingsView'),
+                // >>> END MODIFIED/NEW VIEW REFERENCES <<<
+
                 timeEditModal: document.getElementById('timeEditModal'), closeTimeEditModalBtn: document.getElementById('closeTimeEditModalBtn'),
                 timeEditForm: document.getElementById('timeEditForm'), timeEditTitle: document.getElementById('timeEditTitle'),
                 timeEditProjectId: document.getElementById('timeEditProjectId'), timeEditDay: document.getElementById('timeEditDay'),
@@ -389,7 +429,12 @@ document.addEventListener('DOMContentLoaded', () => {
             this.elements.closeArchiveModalBtn.onclick = () => this.elements.archiveModal.classList.remove('is-open');
             this.elements.copyArchiveBtn.onclick = () => this.handleCopyArchive();
 
-            this.elements.openDashboardBtn.onclick = () => this.switchView('dashboard');
+            // >>> MODIFIED/NEW NAVIGATION LISTENERS <<<
+            this.elements.openDashboardBtn.onclick = () => this.switchView('feed'); // MODIFIED: Now opens feed
+            this.elements.openProjectListBtn.onclick = () => this.switchView('list'); // NEW: Opens project list
+            this.elements.refreshFeedBtn.onclick = () => this.handleRefreshFeed(); // NEW: Refreshes feed
+            // >>> END MODIFIED/NEW NAVIGATION LISTENERS <<<
+
             this.elements.openDowntimePageBtn.onclick = () => { window.location.href = 'downtime.html'; };
             this.elements.openProjectSettingsBtn.onclick = () => this.switchView('settings');
             this.elements.openTlSummaryBtn.onclick = () => this.switchView('summary');
@@ -448,6 +493,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 summaryBtn.innerHTML = '<i class="fas fa-sync-alt icon"></i> Refresh Data';
             }, this.config.cacheDuration);
         },
+        
+        // NEW FUNCTION
+        handleRefreshFeed() {
+            this.renderDashboardFeed();
+            this.showMessage("Feed refreshed from Firebase.");
+        },
+
         switchView(viewName) {
             if (viewName === 'admin') {
                 const code = prompt("Please enter the admin passkey to continue:");
@@ -457,7 +509,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         
-            this.elements.techDashboardContainer.style.display = 'none';
+            // >>> MODIFIED VIEW RESET <<<
+            this.elements.feedDashboardContainer.style.display = 'none'; // NEW
+            this.elements.projectListView.style.display = 'none'; // MODIFIED
             this.elements.projectSettingsView.style.display = 'none';
             this.elements.tlSummaryView.style.display = 'none';
             this.elements.userManagementView.style.display = 'none';
@@ -465,15 +519,22 @@ document.addEventListener('DOMContentLoaded', () => {
             this.elements.adminSettingsView.style.display = 'none';
         
             this.elements.openDashboardBtn.classList.remove('active');
+            this.elements.openProjectListBtn.classList.remove('active'); // NEW button
             this.elements.openProjectSettingsBtn.classList.remove('active');
             this.elements.openTlSummaryBtn.classList.remove('active');
             this.elements.openUserManagementBtn.classList.remove('active');
             this.elements.openDisputeBtn.classList.remove('active');
             this.elements.openAdminSettingsBtn.classList.remove('active');
+            // >>> END MODIFIED VIEW RESET <<<
         
-            if (viewName === 'dashboard') {
-                this.elements.techDashboardContainer.style.display = 'flex';
+            if (viewName === 'feed') { // NEW 'feed' view
+                this.elements.feedDashboardContainer.style.display = 'flex';
                 this.elements.openDashboardBtn.classList.add('active');
+                this.renderDashboardFeed();
+            } else if (viewName === 'list') { // NEW 'list' view for old dashboard table
+                this.elements.projectListView.style.display = 'flex';
+                this.elements.openProjectListBtn.classList.add('active');
+                this.filterAndRenderProjects();
             } else if (viewName === 'settings') {
                 this.renderProjectSettings();
                 this.elements.projectSettingsView.style.display = 'block';
@@ -496,6 +557,55 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.elements.openAdminSettingsBtn.classList.add('active');
             }
         },
+        
+        // NEW FUNCTION: Placeholder to render the feed
+        async renderDashboardFeed() {
+            const feedContent = document.getElementById('feedContent');
+            if (!this.firebaseDb) {
+                feedContent.innerHTML = `<i class="fas fa-exclamation-circle" style="font-size: 2em; color: var(--danger-color); margin-bottom: 15px;"></i>
+                                         <div style="text-align: center; max-width: 500px; margin: 0 auto;"><p>Firebase is not initialized.</p><p>Please configure the <code>firebase</code> API keys in <code>script.js</code> and ensure the Firebase SDK scripts are included in <code>index.html</code>.</p></div>`;
+                return;
+            }
+    
+            // Show loading state
+            feedContent.innerHTML = `<i class="fas fa-spinner fa-spin" style="font-size: 2em; color: var(--primary-color); margin-bottom: 15px;"></i>
+                                     <p>Loading real-time feed data from Firebase...</p>`;
+            
+            try {
+                // Example Firestore query: assumes you have a collection named 'feedItems'
+                // This is a placeholder, you will need to structure your Firestore data accordingly.
+                const snapshot = await this.firebaseDb.collection('feedItems').orderBy('timestamp', 'desc').limit(10).get();
+                
+                let html = '<div style="width: 100%; max-width: 700px; margin: 0 auto; padding-top: 20px;">';
+                
+                if (snapshot.empty) {
+                    html += '<p style="padding: 20px;">No feed items found. Start by adding an item to your Firestore "feedItems" collection.</p>';
+                } else {
+                    snapshot.forEach(doc => {
+                        const item = doc.data();
+                        const timestamp = item.timestamp ? new Date(item.timestamp.toDate()).toLocaleString() : 'N/A';
+                        
+                        // Basic feed item card
+                        html += `<div style="background-color: #f0f4f8; padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: left; border-left: 5px solid var(--primary-color);">
+                                    <h4 style="margin: 0; color: var(--text-color);">${item.title || 'Untitled Update'}</h4>
+                                    <p style="margin: 5px 0 10px; font-size: 0.95em;">${item.content || 'No content.'}</p>
+                                    <small style="color: #777; border-top: 1px solid #e0e0e0; padding-top: 5px; display: block; font-size: 0.8em;">
+                                        <i class="fas fa-user"></i> ${item.user || 'System'} 
+                                        &bull; <i class="fas fa-clock"></i> ${timestamp}
+                                    </small>
+                                    </div>`;
+                    });
+                }
+                
+                html += '</div>';
+                feedContent.innerHTML = html;
+            } catch (e) {
+                feedContent.innerHTML = `<i class="fas fa-skull-crossbones" style="font-size: 2em; color: var(--danger-color); margin-bottom: 15px;"></i>
+                                         <p>Error fetching feed data. Check your Firebase rules and connection: ${e.message}</p>`;
+                console.error("Firebase Fetch Error:", e);
+            }
+        },
+
         populateFilterDropdowns() {
             const projects = [...new Set(this.state.projects.map(p => p.baseProjectName).filter(Boolean))].sort();
             this.elements.projectFilter.innerHTML = '<option value="All">All Projects</option>' + projects.map(p => `<option value="${p}">${this.formatProjectName(p)}</option>`).join('');
@@ -1665,7 +1775,7 @@ document.addEventListener('DOMContentLoaded', () => {
             this.elements.notificationViewBtn = newBtn;
         
             newBtn.onclick = () => {
-                this.switchView('dashboard');
+                this.switchView('list'); // MODIFIED: Go to 'list' view
                 this.populateFilterDropdowns();
                 this.state.filters.project = projectFilterValue;
                 this.elements.projectFilter.value = projectFilterValue;
@@ -1684,6 +1794,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (this.elements.loadingOverlay) { 
                 this.elements.loadingOverlay.classList.remove('is-open');
             } 
+        },
+        showMessage(text, isError = false) {
+             // Placeholder for small temporary messages (used for feed refresh)
+             console.log(isError ? `Error: ${text}` : `Message: ${text}`);
         },
         showFilterSpinner() { },
         hideFilterSpinner() { },
@@ -1898,12 +2012,12 @@ document.addEventListener('DOMContentLoaded', () => {
                             }
                         };
 
-                        if (this.elements.openDashboardBtn.classList.contains('active') && this.state.filters.project === n.projectName) {
+                        if (this.elements.openProjectListBtn.classList.contains('active') && this.state.filters.project === n.projectName) {
                             markAsRead();
                             return; 
                         }
 
-                        this.switchView('dashboard');
+                        this.switchView('list'); // MODIFIED: Go to 'list' view
                         
                         setTimeout(() => {
                             this.populateFilterDropdowns(); 
