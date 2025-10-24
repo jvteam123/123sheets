@@ -603,13 +603,23 @@
         <main class="main-content">
             <div id="feedDashboardContainer">
                 <div class="view-header">
-                    <h2>Dashboard Feed</h2>
+                    <h2>Dashboard Feed <span id="dashboardStatusLabel" style="font-size: 0.8em; font-weight: 500; color: var(--secondary-color);"></span></h2>
                     <button id="refreshFeedBtn" class="btn btn-secondary" title="Refresh Feed"><i class="fas fa-sync-alt"></i></button>
                 </div>
-                <div id="feedContent" class="table-container" style="padding: 20px; text-align: center; flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px;">
+                
+                <div class="filter-section" style="flex-direction: column; align-items: stretch;">
+                    <h3 style="margin: 0 0 10px 0;"><i class="fas fa-edit"></i> Post New Update</h3>
+                    <form id="newFeedItemForm">
+                        <input type="text" id="feedTitle" placeholder="Update Title (e.g., Fix2 Released for PROJ_A)" required style="width: 100%; padding: 8px; margin-bottom: 10px; box-sizing: border-box; border: 1px solid var(--border-color); border-radius: 5px;">
+                        <textarea id="feedContent" placeholder="Detailed content or announcement..." required style="width: 100%; padding: 8px; margin-bottom: 10px; box-sizing: border-box; border: 1px solid var(--border-color); border-radius: 5px; min-height: 80px;"></textarea>
+                        <button type="submit" class="btn btn-primary" style="width: 100%;"><i class="fas fa-paper-plane"></i> Post to Feed</button>
+                    </form>
+                </div>
+                
+                <div id="feedContent" class="table-container" style="padding: 20px; text-align: center; flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px; margin-top: 20px;">
                     <i class="fas fa-fire" style="font-size: 3em; color: #e74c3c; margin-bottom: 15px;"></i>
                     <h1 style="margin: 0;">Project Status Feed (Firebase)</h1>
-                    <p style="margin-top: 10px;">This new feed will dynamically show project status updates, comments, and graphs, powered by a Firebase backend for real-time data.</p>
+                    <p style="margin-top: 10px;">Loading live data...</p>
                 </div>
             </div>
             
