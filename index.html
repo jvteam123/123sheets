@@ -7,6 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Font Awesome is used for icons like thumbs-up, comment, and warning icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         :root {
@@ -41,12 +42,7 @@
             color: var(--text-color);
             line-height: 1.6;
         }
-        body.login-view-active {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-        }
+        /* REMOVED: body.login-view-active to always display dashboard */
         .dashboard-wrapper { display: flex; height: 100vh; width: 100%; }
         .sidebar { width: 250px; background-color: var(--primary-color); color: #ecf0f1; padding: 20px; display: flex; flex-direction: column; border-right: 1px solid #475569; flex-shrink: 0; }
         .sidebar-header { text-align: center; margin-bottom: 20px; position: relative; }
@@ -218,28 +214,23 @@
         }
 
 
-        /* MODIFIED LOGIN STYLES */
+        /* MODIFIED LOGIN STYLES - REPURPOSED FOR AUTH WARNING */
         #auth-wrapper { 
+            display: none !important; /* Hide the initial login screen */
+        }
+        
+        .auth-warning { 
             max-width: 420px; 
             width: 100%; 
             text-align: center; 
-            background-color: var(--card-bg-color);
-            padding: 40px 50px; 
+            background-color: #fcecec;
+            padding: 20px 30px; 
             border-radius: var(--border-radius-lg);
-            box-shadow: var(--shadow-light);
-            border: 1px solid var(--border-color); /* Added border */
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: 1px solid var(--danger-color); 
+            margin: 0 auto 20px auto;
         }
-        #auth-wrapper h2 {
-            color: var(--primary-color);
-            font-size: 2.2em;
-            margin-bottom: 10px;
-        }
-        #auth-wrapper p {
-            color: var(--text-color);
-            margin-bottom: 25px;
-            font-size: 1.1em;
-        }
-        #signInBtn {
+        #gsiSignInBtn {
             padding: 12px 30px;
             font-size: 1.1em;
             font-weight: 600;
@@ -664,15 +655,13 @@
     </style>
     <link rel="icon" type="image/png" href="icon.png">
 </head>
-<body class="login-view-active">
+<body class="dashboard-default-view"> <!-- Changed class to ensure dashboard always shows -->
 
-    <div id="auth-wrapper">
-        <h2>Project Tracker V3</h2>
-        <p>Please sign in to continue.</p>
-        <button id="signInBtn" class="btn btn-primary">Sign in with Google</button>
+    <div id="auth-wrapper" style="display: none;">
+        <!-- This wrapper is now hidden by default -->
     </div>
 
-    <div class="dashboard-wrapper" style="display: none;">
+    <div class="dashboard-wrapper"> <!-- Show dashboard by default -->
         <aside class="sidebar">
             <div class="sidebar-header">
                 <h2>Team123</h2>
@@ -687,6 +676,8 @@
                 <div> 
                     <button id="openDashboardBtn" class="active"><i class="fas fa-chart-bar icon"></i> Dashboard Feed</button>
                     <button id="openProjectListBtn"><i class="fas fa-tasks icon"></i> Projects</button>
+                    <!-- Repurpose sign in for GSI features -->
+                    <button id="signInBtn" class="btn btn-primary" style="margin-bottom: 10px;"><i class="fas fa-sign-in-alt icon"></i> Sign In to Edit</button> 
                     <button id="openNewProjectModalBtn"><i class="fas fa-plus icon"></i> Add Project</button>
                     <button id="openTlSummaryBtn"><i class="fas fa-chart-line icon"></i> TL Summary</button>
                     <button id="openProjectSettingsBtn"><i class="fas fa-cogs icon"></i> Project Settings</button>
@@ -699,7 +690,8 @@
                     <hr>
                 </div>
             </div>
-            <button id="signOutBtn" class="btn btn-danger">Sign Out</button>
+            <!-- Repurposed Sign Out -->
+            <button id="signOutBtn" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i> Sign Out</button>
         </aside>
 
         <main class="main-content">
@@ -709,6 +701,8 @@
                     <button id="refreshFeedBtn" class="btn btn-secondary" title="Refresh Feed"><i class="fas fa-sync-alt"></i></button>
                 </div>
                 
+                <!-- POST FORM CARD -->
+                <!-- The JS will remove the .filter-section class and add the .post-form-card class when loaded -->
                 <div class="filter-section" style="flex-direction: column; align-items: stretch;">
                     <h3 style="margin: 0 0 10px 0;"><i class="fas fa-edit"></i> Post New Update</h3>
                     <form id="newFeedItemForm">
@@ -718,6 +712,7 @@
                     </form>
                 </div>
                 
+                <!-- FEED CONTENT LIST -->
                 <div id="feedContent" class="table-container" style="padding: 20px; text-align: center; flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px; margin-top: 20px;">
                     <i class="fas fa-fire" style="font-size: 3em; color: #e74c3c; margin-bottom: 15px;"></i>
                     <h1 style="margin: 0;">Project Status Feed (Firebase)</h1>
