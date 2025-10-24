@@ -626,8 +626,19 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         },
 
+        // ... (Lines 1-620 remain the same)
+
+        // MODIFIED FUNCTION: renderDashboardFeed to include buttons and new UI
         async renderDashboardFeed() {
             const feedContent = document.getElementById('feedContent');
+            const postFormContainer = document.querySelector('#feedDashboardContainer > .filter-section');
+            
+            // Apply the new CSS class to the post form container
+            if (postFormContainer) {
+                postFormContainer.classList.remove('filter-section');
+                postFormContainer.classList.add('post-form-card');
+            }
+
             if (!this.firebaseDb) {
                 feedContent.innerHTML = `<i class="fas fa-exclamation-circle" style="font-size: 2em; color: var(--danger-color); margin-bottom: 15px;"></i>
                                          <div style="text-align: center; max-width: 500px; margin: 0 auto;"><p>Firebase is not initialized.</p><p>Please ensure your Firebase credentials are correctly loaded.</p></div>`;
@@ -635,13 +646,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
     
             // Show loading state
-            feedContent.innerHTML = `<i class="fas fa-spinner fa-spin" style="font-size: 2em; color: var(--primary-color); margin-bottom: 15px;"></i>
-                                     <p>Loading real-time feed data from Firebase...</p>`;
+            feedContent.innerHTML = `<div style="text-align: center; margin: 50px 0;"><i class="fas fa-spinner fa-spin" style="font-size: 2em; color: var(--primary-color); margin-bottom: 15px;"></i>
+                                     <p>Loading real-time feed data from Firebase...</p></div>`;
             
             try {
                 const snapshot = await this.firebaseDb.collection('feedItems').orderBy('timestamp', 'desc').limit(10).get();
                 
-                let html = '<div style="width: 100%; max-width: 700px; margin: 0 auto; padding-top: 20px;">';
+                let html = '<div style="width: 100%; max-width: 600px; margin: 0 auto; padding-top: 5px;">';
                 
                 if (snapshot.empty) {
                     const projectId = this.config.firebase.projectId;
@@ -650,8 +661,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     console.warn(`[FEED SETUP]: The 'feedItems' collection is currently empty. Please visit the Firebase Firestore Console to create the collection and add your first feed item: ${firestoreLink}`);
 
                     // Default Welcome Item (Simulated)
-                    html += `<div style="background-color: #e8f4f8; padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: left; border-left: 5px solid var(--info-color);">
-                                <h4 style="margin: 0; color: var(--text-color);"><i class="fas fa-hand-sparkles"></i> Welcome to Project Tracker V3!</h4>
+                    html += `<div class="feed-post-card type-welcome">
+                                <h4 style="color: var(--info-color);"><i class="fas fa-hand-sparkles"></i> Welcome to Project Tracker V3!</h4>
                                 <p style="margin: 5px 0 10px; font-size: 0.95em;">This is a simulated welcome message. Your real-time dashboard feed is working and ready to display live project updates!</p>
                                 <small style="color: #777; border-top: 1px solid #c9e6f0; padding-top: 5px; display: block; font-size: 0.8em;">
                                     <i class="fas fa-user"></i> System &bull; <i class="fas fa-clock"></i> Just now
@@ -659,10 +670,10 @@ document.addEventListener('DOMContentLoaded', () => {
                              </div>`;
                     
                     // Setup Guide Item with link
-                    html += `<div style="background-color: #fff3e0; padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: left; border-left: 5px solid var(--warning-color);">
-                                <h4 style="margin: 0; color: var(--text-color);"><i class="fas fa-tools"></i> Firebase Setup: Collection Empty</h4>
+                    html += `<div class="feed-post-card type-setup">
+                                <h4 style="color: var(--warning-color);"><i class="fas fa-tools"></i> Firebase Setup: Collection Empty</h4>
                                 <p style="margin: 5px 0 10px; font-size: 0.95em;">The <code>feedItems</code> collection is empty. To populate this feed, you need to create the collection in your Firebase console and add your first item.</p>
-                                <a href="${firestoreLink}" target="_blank" style="color: var(--warning-color); font-weight: 600;"><i class="fas fa-external-link-alt"></i> Go to Firebase Firestore Console</a>
+                                <a href="${firestoreLink}" target="_blank" style="color: var(--warning-color); font-weight: 600; display: inline-block; margin-top: 10px;"><i class="fas fa-external-link-alt"></i> Go to Firebase Firestore Console</a>
                              </div>`;
                 } else {
                     snapshot.forEach(doc => {
@@ -672,21 +683,21 @@ document.addEventListener('DOMContentLoaded', () => {
                         const likes = item.likes || 0;
                         const comments = item.comments || 0; 
 
-                        // Basic feed item card
-                        html += `<div style="background-color: #f0f4f8; padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: left; border-left: 5px solid var(--primary-color);">
-                                    <h4 style="margin: 0; color: var(--text-color);">${item.title || 'Untitled Update'}</h4>
-                                    <p style="margin: 5px 0 10px; font-size: 0.95em;">${item.content || 'No content.'}</p>
-                                    <small style="color: #777; border-top: 1px solid #e0e0e0; padding-top: 5px; display: block; font-size: 0.8em;">
+                        // Use new class structure
+                        html += `<div class="feed-post-card">
+                                    <h4 style="margin-bottom: 5px;">${item.title || 'Untitled Update'}</h4>
+                                    <p style="margin: 0 0 10px 0; font-size: 0.95em; white-space: pre-wrap;">${item.content || 'No content.'}</p>
+                                    <small style="color: #777; padding-top: 5px; display: block; font-size: 0.8em;">
                                         <i class="fas fa-user"></i> ${item.user || 'System'} 
                                         &bull; <i class="fas fa-clock"></i> ${timestamp}
                                     </small>
                                     
-                                    <div style="margin-top: 10px; display: flex; gap: 15px; border-top: 1px solid #e0e0e0; padding-top: 10px;">
-                                        <button class="btn btn-secondary btn-small" onclick="ProjectTrackerApp.handleLikeClick('${docId}')" style="background: none; border: none; color: var(--secondary-color); padding: 0;">
-                                            <i class="fas fa-thumbs-up"></i> Like (${likes})
+                                    <div class="interaction-bar" style="margin-top: 10px; display: flex; gap: 20px; border-top: 1px solid #e0e0e0; padding-top: 10px;">
+                                        <button onclick="ProjectTrackerApp.handleLikeClick('${docId}')" style="background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                                            <i class="far fa-thumbs-up"></i> <span>Like (${likes})</span>
                                         </button>
-                                        <button class="btn btn-secondary btn-small" onclick="alert('Comment feature is not yet implemented.')" style="background: none; border: none; color: var(--secondary-color); padding: 0;">
-                                            <i class="fas fa-comment"></i> Comment (${comments})
+                                        <button onclick="alert('Comment feature is not yet implemented.')" style="background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                                            <i class="far fa-comment"></i> <span>Comment (${comments})</span>
                                         </button>
                                     </div>
                                     </div>`;
@@ -696,12 +707,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 html += '</div>';
                 feedContent.innerHTML = html;
             } catch (e) {
-                feedContent.innerHTML = `<i class="fas fa-skull-crossbones" style="font-size: 2em; color: var(--danger-color); margin-bottom: 15px;"></i>
-                                         <p>Error fetching feed data. Check your Firebase rules and connection: ${e.message}</p>`;
+                feedContent.innerHTML = `<div class="feed-post-card" style="text-align: center;">
+                                         <i class="fas fa-skull-crossbones" style="font-size: 2em; color: var(--danger-color); margin-bottom: 15px;"></i>
+                                         <p>Error fetching feed data. Check your Firebase rules and connection: ${e.message}</p></div>`;
                 console.error("Firebase Fetch Error:", e);
             }
         },
-
+// ... (rest of the file remains the same from the last response, including handleNewFeedItemSubmit and handleLikeClick)
         populateFilterDropdowns() {
             const projects = [...new Set(this.state.projects.map(p => p.baseProjectName).filter(Boolean))].sort();
             this.elements.projectFilter.innerHTML = '<option value="All">All Projects</option>' + projects.map(p => `<option value="${p}">${this.formatProjectName(p)}</option>`).join('');
