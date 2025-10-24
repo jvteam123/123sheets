@@ -136,8 +136,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Rerender the correct view, usually the default 'feed'
                 this.switchView('feed');
             }
-            this.renderExtrasMenu();
-            this.updateDashboardHeaderStatus(); // Call to update header status
+            this.renderExtrasMenu(); 
+            this.updateDashboardHeaderStatus(); 
         },
         handleSignedOutUser() {
             gapi.client.setToken(null);
@@ -184,7 +184,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         this.filterAndRenderProjects();
                         this.renderExtrasMenu();
                         this.renderNotificationBell();
-                        this.updateDashboardHeaderStatus(); // Call to update header status
+                        this.updateDashboardHeaderStatus(); 
                         return;
                     }
                 }
@@ -226,7 +226,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.filterAndRenderProjects();
                 this.renderExtrasMenu();
                 this.renderNotificationBell();
-                this.updateDashboardHeaderStatus(); // Call to update header status
+                this.updateDashboardHeaderStatus(); 
             } catch (err) {
                 if (!this.handleApiError(err)) {
                     alert("Could not load data. Check Spreadsheet ID and sharing permissions.");
@@ -626,9 +626,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         },
 
-        // ... (Lines 1-620 remain the same)
-
-        // MODIFIED FUNCTION: renderDashboardFeed to include buttons and new UI
         async renderDashboardFeed() {
             const feedContent = document.getElementById('feedContent');
             const postFormContainer = document.querySelector('#feedDashboardContainer > .filter-section');
@@ -682,11 +679,23 @@ document.addEventListener('DOMContentLoaded', () => {
                         const timestamp = item.timestamp ? new Date(item.timestamp.toDate()).toLocaleString() : 'N/A';
                         const likes = item.likes || 0;
                         const comments = item.comments || 0; 
+                        
+                        // Function to safely encode text for display (prevents HTML injection)
+                        const escapeHTML = (str) => {
+                            if (!str) return '';
+                            const div = document.createElement('div');
+                            div.textContent = str;
+                            return div.innerHTML;
+                        };
+                        
+                        // Use escaped HTML for title and content
+                        const safeTitle = escapeHTML(item.title || 'Untitled Update');
+                        const safeContent = escapeHTML(item.content || 'No content.');
 
                         // Use new class structure
                         html += `<div class="feed-post-card">
-                                    <h4 style="margin-bottom: 5px;">${item.title || 'Untitled Update'}</h4>
-                                    <p style="margin: 0 0 10px 0; font-size: 0.95em; white-space: pre-wrap;">${item.content || 'No content.'}</p>
+                                    <h4 style="margin-bottom: 5px;">${safeTitle}</h4>
+                                    <p style="margin: 0 0 10px 0; font-size: 0.95em; white-space: pre-wrap;">${safeContent}</p>
                                     <small style="color: #777; padding-top: 5px; display: block; font-size: 0.8em;">
                                         <i class="fas fa-user"></i> ${item.user || 'System'} 
                                         &bull; <i class="fas fa-clock"></i> ${timestamp}
@@ -713,7 +722,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error("Firebase Fetch Error:", e);
             }
         },
-// ... (rest of the file remains the same from the last response, including handleNewFeedItemSubmit and handleLikeClick)
+
         populateFilterDropdowns() {
             const projects = [...new Set(this.state.projects.map(p => p.baseProjectName).filter(Boolean))].sort();
             this.elements.projectFilter.innerHTML = '<option value="All">All Projects</option>' + projects.map(p => `<option value="${p}">${this.formatProjectName(p)}</option>`).join('');
