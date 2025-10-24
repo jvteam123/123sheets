@@ -558,7 +558,108 @@
             font-size: 1.1em;
             margin-top: 10px;
         }
-
+        
+        /* === NEW FEED UI STYLES (Facebook-like) === */
+        
+        /* Base container for the whole feed area */
+        #feedDashboardContainer {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow-y: auto; 
+            padding-bottom: 20px;
+        }
+        
+        /* Post Form Container (Making it narrower and card-like) */
+        .post-form-card {
+            background-color: var(--card-bg-color);
+            border-radius: var(--border-radius-lg);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin: 0 auto 20px auto; /* Centered and spaced */
+            max-width: 600px; /* Standard feed width */
+            width: 100%;
+        }
+        
+        /* Styling for the input fields in the post form */
+        #newFeedItemForm input[type="text"],
+        #newFeedItemForm textarea {
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 10px;
+            font-size: 1em;
+            transition: border-color 0.2s;
+        }
+        
+        #newFeedItemForm input[type="text"]:focus,
+        #newFeedItemForm textarea:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 1px var(--primary-color);
+        }
+        
+        #newFeedItemForm .btn-primary {
+            padding: 10px 15px;
+            font-size: 1em;
+            font-weight: 600;
+        }
+        
+        /* Feed Content Container (The scrolling list of posts) */
+        #feedContent.table-container {
+            /* Override defaults for the feed content area */
+            background-color: transparent; 
+            box-shadow: none;
+            border: none;
+            padding: 0;
+            display: block; /* Allows normal flow of feed cards */
+            flex-grow: 1; 
+            overflow-y: visible; /* Let the main container handle the scroll */
+            min-height: unset !important; /* Remove placeholder height */
+        }
+        
+        /* Individual Post Card Style */
+        #feedContent .feed-post-card {
+            background-color: var(--card-bg-color);
+            border-radius: var(--border-radius-md);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            padding: 15px;
+            margin: 0 auto 15px auto; /* Centered and spaced */
+            max-width: 600px; /* Standard feed width */
+            width: 100%;
+            border-left: 5px solid transparent !important; /* Remove initial border-left */
+            transition: box-shadow 0.2s;
+        }
+        #feedContent .feed-post-card:hover {
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        }
+        
+        /* Styles for the different types of cards (Welcome/Warning) */
+        .feed-post-card.type-welcome {
+            border-left-color: var(--info-color) !important;
+            background-color: #e8f4ff;
+        }
+        .feed-post-card.type-setup {
+            border-left-color: var(--warning-color) !important;
+            background-color: #fff8e0;
+        }
+        
+        /* Header style within the post card */
+        .feed-post-card h4 {
+            font-size: 1.1em;
+            font-weight: 600;
+            margin: 0 0 8px 0 !important;
+        }
+        
+        /* Interaction bar (Like/Comment) */
+        .interaction-bar button {
+            font-size: 0.9em;
+            font-weight: 500;
+            color: var(--secondary-color);
+            transition: color 0.2s;
+        }
+        .interaction-bar button:hover {
+            color: var(--primary-color);
+        }
+        /* === END NEW FEED UI STYLES === */
     </style>
     <link rel="icon" type="image/png" href="icon.png">
 </head>
@@ -696,7 +797,7 @@
                                 <th>Actions</th>
                             </tr>
                         </thead>
-                        <tbody id="userTableBody"></tbody>
+                            <tbody id="userTableBody"></tbody>
                     </table>
                 </div>
             </div>
