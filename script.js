@@ -9,12 +9,12 @@ document.addEventListener('DOMContentLoaded', () => {
             },
             // >>> NEW: FIREBASE CONFIG (REPLACE PLACEHOLDERS) <<<
             firebase: {
-                API_KEY: "YOUR_FIREBASE_API_KEY", 
-                AUTH_DOMAIN: "YOUR_PROJECT_ID.firebaseapp.com",
-                PROJECT_ID: "YOUR_PROJECT_ID",
-                STORAGE_BUCKET: "YOUR_PROJECT_ID.appspot.com",
-                MESSAGING_SENDER_ID: "YOUR_SENDER_ID",
-                APP_ID: "YOUR_APP_ID"
+                API_KEY: "AIzaSyA1rWP0ky1L-4TqCwtm0OZZSa76EuymP8o", 
+                AUTH_DOMAIN: "mysocial-3b3fc.firebaseapp.com",
+                PROJECT_ID: "mysocial-3b3fc",
+                STORAGE_BUCKET: "mysocial-3b3fc.firebasestorage.app",
+                MESSAGING_SENDER_ID: "126693884353",
+                APP_ID: "1:126693884353:web:2c0af86f20a7e9c8142f40"
             },
             // >>> END NEW <<<
             cacheDuration: 5 * 60 * 1000, // 5 minutes in milliseconds
