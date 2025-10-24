@@ -58,6 +58,9 @@ document.addEventListener('DOMContentLoaded', () => {
             this.switchView('feed'); 
             gapi.load('client', this.initializeGapiClient.bind(this));
             this.initializeFirebase(); 
+            // CRITICAL FIX: Attempt to render the feed immediately, 
+            // as it relies only on Firebase Read access (which is public).
+            this.renderDashboardFeed();
         },
         async initializeGapiClient() {
             try {
@@ -129,11 +132,12 @@ document.addEventListener('DOMContentLoaded', () => {
             this.elements.authWrapper.style.display = 'none';
             this.elements.dashboardWrapper.style.display = 'flex';
             this.elements.loggedInUser.textContent = `Signed In`;
+            
+            // Only load sheets data here, as the feed data is handled by a separate call in init()
             if (!this.state.isAppInitialized) {
                 await this.loadDataFromSheets();
                 this.state.isAppInitialized = true;
             } else {
-                // Rerender the correct view, usually the default 'feed'
                 this.switchView('feed');
             }
             this.renderExtrasMenu(); 
@@ -1004,12 +1008,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!confirm(`DANGER: This will permanently delete all '${fixToDelete}' tasks for project '${this.formatProjectName(baseProjectName)}'. This cannot be undone. Continue?`)) return;
             this.showLoading(`Rolling back ${fixToDelete}...`);
             try {
-                const tasksToDelete = this.state.projects.filter(p => p.baseProjectName === baseProjectName && p.fixCategory === fixToDelete);
+                const tasksToClone = this.state.projects.filter(p => p.baseProjectName === baseProjectName && p.fixCategory === fixToDelete);
                 if (tasksToClone.length === 0) {
                     throw new Error(`No tasks found to delete for ${fixToDelete}.`);
                 }
         
-                const rowNumbersToDelete = tasksToDelete.map(p => p._row);
+                const rowNumbersToDelete = tasksToClone.map(p => p._row);
                 await this.deleteSheetRows(this.config.sheetNames.PROJECTS, rowNumbersToDelete);
                 
                 this.state.projects = this.state.projects.filter(p => !(p.baseProjectName === baseProjectName && p.fixCategory === fixToDelete));
@@ -1127,7 +1131,6 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch(error) {
                 if (!this.handleApiError(error)) {
                     alert("Error reorganizing sheet: " + error.message);
-                    await this.loadDataFromSheets(true);
                 }
             } finally {
                 this.hideLoading();
