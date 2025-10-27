@@ -690,7 +690,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             // Find the user object to get the Tech ID case sensitivity correct, if necessary
-            const user = this.state.users.find(u => u.techId === techId);
+            const user = this.state.users.find(u => u.techId.toLowerCase() === techId.toLowerCase());
             const finalTechId = user ? user.techId : techId;
 
             if (confirm(`Assign this task to yourself (${finalTechId})?`)) {
