@@ -7,7 +7,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-    <!-- Font Awesome is used for icons like thumbs-up, comment, and warning icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         :root {
@@ -42,12 +41,19 @@
             color: var(--text-color);
             line-height: 1.6;
         }
-        /* REMOVED: body.login-view-active to always display dashboard */
+        body.login-view-active {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
         .dashboard-wrapper { display: flex; height: 100vh; width: 100%; }
         .sidebar { width: 250px; background-color: var(--primary-color); color: #ecf0f1; padding: 20px; display: flex; flex-direction: column; border-right: 1px solid #475569; flex-shrink: 0; }
         .sidebar-header { text-align: center; margin-bottom: 20px; position: relative; }
         .sidebar-header h2 { color: #fff; margin-top: 0; margin-bottom: 5px; font-size: 1.5em; }
         .sidebar-header #loggedInUser { color: #bdc3c7; font-size: 0.9em; }
+        /* NEW: Style for user status */
+        #loggedInUserStatus { color: #2ecc71; font-size: 0.85em; font-weight: 500; margin-top: 5px; }
         
         .sidebar-nav {
             flex-grow: 1;
@@ -70,6 +76,7 @@
             background-color: #475569;
             border-radius: 10px;
             border: 2px solid var(--primary-color);
+            z-index: 10;
         }
         .sidebar-nav::-webkit-scrollbar-thumb:hover {
             background-color: #6c757d;
@@ -89,6 +96,7 @@
         .btn-warning { background-color: var(--warning-color); color: white; }
         .btn-danger { background-color: var(--danger-color); color: white; }
         .btn-secondary { background-color: var(--secondary-color); color: white; }
+        .btn-quick-assign { background-color: #3498db; color: white; padding: 6px 10px; font-size: 0.85em; } /* NEW Style for quick assign */
 
 
         .filter-section {
@@ -144,17 +152,13 @@
             transition: background-color: 0.2s, border-color: 0.2s;
             min-width: unset;
         }
-        .filter-group input[type="checkbox"] + label:hover {
-            background-color: #e0e0e0;
-        }
         .filter-group input[type="checkbox"]:checked + label {
             background-color: var(--primary-color);
             color: white;
             border-color: var(--primary-color);
         }
 
-        /* MODIFIED: Changed #techDashboardContainer to #projectListView */
-        #projectListView { display: flex; flex-direction: column; flex-grow: 1; overflow: hidden; }
+        #techDashboardContainer { display: flex; flex-direction: column; flex-grow: 1; overflow: hidden; }
         .table-container { background-color: var(--card-bg-color); border-radius: var(--border-radius-md); border: 1px solid var(--border-color); box-shadow: var(--shadow-light); padding: 20px; flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; }
         .table-scroll-wrapper { width: 100%; flex-grow: 1; overflow: auto; }
         #tlSummaryView .table-scroll-wrapper {
@@ -214,30 +218,7 @@
         }
 
 
-        /* MODIFIED LOGIN STYLES - REPURPOSED FOR AUTH WARNING */
-        #auth-wrapper { 
-            display: none !important; /* Hide the initial login screen */
-        }
-        
-        .auth-warning { 
-            max-width: 420px; 
-            width: 100%; 
-            text-align: center; 
-            background-color: #fcecec;
-            padding: 20px 30px; 
-            border-radius: var(--border-radius-lg);
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            border: 1px solid var(--danger-color); 
-            margin: 0 auto 20px auto;
-        }
-        #gsiSignInBtn {
-            padding: 12px 30px;
-            font-size: 1.1em;
-            font-weight: 600;
-        }
-        /* END MODIFIED LOGIN STYLES */
-
-
+        #auth-wrapper { max-width: 420px; width: 100%; text-align: center; background-color: white; padding: 40px 50px; border-radius: var(--border-radius-lg); box-shadow: var(--shadow-light); }
         .modal { 
             display: none; 
             position: fixed; 
@@ -447,7 +428,6 @@
             box-sizing: border-box;
         }
         #notificationList {
-            display: none;
             position: absolute;
             top: 40px;
             left: 0;
@@ -549,135 +529,65 @@
             font-size: 1.1em;
             margin-top: 10px;
         }
-        
-        /* === NEW FEED UI STYLES (Facebook-like) === */
-        
-        /* Base container for the whole feed area */
-        #feedDashboardContainer {
-            display: flex;
-            flex-direction: column;
-            height: 100%;
-            overflow-y: auto; 
-            padding-bottom: 20px;
-        }
-        
-        /* Post Form Container (Making it narrower and card-like) */
-        .post-form-card {
-            background-color: var(--card-bg-color);
-            border-radius: var(--border-radius-lg);
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            padding: 20px;
-            margin: 0 auto 20px auto; /* Centered and spaced */
-            max-width: 600px; /* Standard feed width */
-            width: 100%;
-        }
-        
-        /* Styling for the input fields in the post form */
-        #newFeedItemForm input[type="text"],
-        #newFeedItemForm textarea {
-            border: 1px solid #e0e0e0;
-            border-radius: 6px;
-            padding: 10px;
-            font-size: 1em;
-            transition: border-color 0.2s;
-        }
-        
-        #newFeedItemForm input[type="text"]:focus,
-        #newFeedItemForm textarea:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 1px var(--primary-color);
-        }
-        
-        #newFeedItemForm .btn-primary {
-            padding: 10px 15px;
-            font-size: 1em;
-            font-weight: 600;
-        }
-        
-        /* Feed Content Container (The scrolling list of posts) */
-        #feedContent.table-container {
-            /* Override defaults for the feed content area */
-            background-color: transparent; 
-            box-shadow: none;
-            border: none;
-            padding: 0;
-            display: block; /* Allows normal flow of feed cards */
-            flex-grow: 1; 
-            overflow-y: visible; /* Let the main container handle the scroll */
-            min-height: unset !important; /* Remove placeholder height */
-        }
-        
-        /* Individual Post Card Style */
-        #feedContent .feed-post-card {
-            background-color: var(--card-bg-color);
+
+        /* Archive Selection Modal Styles */
+        #archiveSelectModal .project-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
             border-radius: var(--border-radius-md);
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            padding: 15px;
-            margin: 0 auto 15px auto; /* Centered and spaced */
-            max-width: 600px; /* Standard feed width */
-            width: 100%;
-            border-left: 5px solid transparent !important; /* Remove initial border-left */
-            transition: box-shadow 0.2s;
+            padding: 10px;
+            margin-top: 15px;
         }
-        #feedContent .feed-post-card:hover {
-            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        #archiveSelectModal .project-item {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            border-bottom: 1px dashed #eee;
         }
-        
-        /* Styles for the different types of cards (Welcome/Warning) */
-        .feed-post-card.type-welcome {
-            border-left-color: var(--info-color) !important;
-            background-color: #e8f4ff;
+        #archiveSelectModal .project-item:last-child {
+            border-bottom: none;
         }
-        .feed-post-card.type-setup {
-            border-left-color: var(--warning-color) !important;
-            background-color: #fff8e0;
+        #archiveSelectModal .project-item input[type="checkbox"] {
+            width: 20px;
+            margin-right: 10px;
         }
-        
-        /* Header style within the post card */
-        .feed-post-card h4 {
-            font-size: 1.1em;
-            font-weight: 600;
-            margin: 0 0 8px 0 !important;
-        }
-        
-        /* Interaction bar (Like/Comment) */
-        .interaction-bar button {
-            font-size: 0.9em;
+        #archiveSelectModal .project-name-label {
+            flex-grow: 1;
             font-weight: 500;
-            color: var(--secondary-color);
-            transition: color 0.2s;
-            cursor: pointer;
         }
-        .interaction-bar button:hover {
-            color: var(--primary-color);
+        #archiveSelectModal .project-stats {
+            font-size: 0.85em;
+            color: #7f8c8d;
         }
-        /* === END NEW FEED UI STYLES === */
+        
     </style>
     <link rel="icon" type="image/png" href="icon.png">
 </head>
-<body class="dashboard-default-view"> <!-- Changed class to ensure dashboard always shows -->
+<body class="login-view-active">
 
-    <div id="auth-wrapper" style="display: none;">
-        <!-- This wrapper is now hidden by default -->
+    <div id="auth-wrapper">
+        <h2>Project Tracker V3</h2>
+        <p>Please sign in to continue.</p>
+        <button id="signInBtn" class="btn btn-primary">Sign in with Google</button>
     </div>
 
-    <div class="dashboard-wrapper"> <!-- Show dashboard by default -->
+    <div class="dashboard-wrapper" style="display: none;">
         <aside class="sidebar">
             <div class="sidebar-header">
                 <h2>Team123</h2>
                 <div id="loggedInUser"></div>
+                <!-- NEW: Element for User Status (e.g., Active/On Break) -->
+                <div id="loggedInUserStatus"></div> 
                  <div id="notificationBell">
                     <i class="fas fa-bell"></i>
                     <span id="notificationBadge"></span>
                 </div>
-                <div id="notificationList"></div>
+                <div id="notificationList" style="display: none;"></div>
             </div>
             <div class="sidebar-nav">
                 <div> 
-                    <button id="openDashboardBtn" class="active"><i class="fas fa-chart-bar icon"></i> Dashboard Feed</button>
-                    <button id="openProjectListBtn"><i class="fas fa-tasks icon"></i> Projects</button>
-                    <!-- Repurpose sign in for GSI features -->
-                    <button id="signInBtn" class="btn btn-primary" style="margin-bottom: 10px;"><i class="fas fa-sign-in-alt icon"></i> Sign In to Edit</button> 
+                    <button id="openDashboardBtn" class="active"><i class="fas fa-tasks icon"></i> Dashboard</button>
                     <button id="openNewProjectModalBtn"><i class="fas fa-plus icon"></i> Add Project</button>
                     <button id="openTlSummaryBtn"><i class="fas fa-chart-line icon"></i> TL Summary</button>
                     <button id="openProjectSettingsBtn"><i class="fas fa-cogs icon"></i> Project Settings</button>
@@ -690,37 +600,11 @@
                     <hr>
                 </div>
             </div>
-            <!-- Repurposed Sign Out -->
-            <button id="signOutBtn" class="btn btn-danger"><i class="fas fa-sign-out-alt"></i> Sign Out</button>
+            <button id="signOutBtn" class="btn btn-danger">Sign Out</button>
         </aside>
 
         <main class="main-content">
-            <div id="feedDashboardContainer">
-                <div class="view-header">
-                    <h2>Dashboard Feed <span id="dashboardStatusLabel" style="font-size: 0.8em; font-weight: 500; color: var(--secondary-color);"></span></h2>
-                    <button id="refreshFeedBtn" class="btn btn-secondary" title="Refresh Feed"><i class="fas fa-sync-alt"></i></button>
-                </div>
-                
-                <!-- POST FORM CARD -->
-                <!-- The JS will remove the .filter-section class and add the .post-form-card class when loaded -->
-                <div class="filter-section" style="flex-direction: column; align-items: stretch;">
-                    <h3 style="margin: 0 0 10px 0;"><i class="fas fa-edit"></i> Post New Update</h3>
-                    <form id="newFeedItemForm">
-                        <input type="text" id="feedTitle" placeholder="Update Title (e.g., Fix2 Released for PROJ_A)" required style="width: 100%; padding: 8px; margin-bottom: 10px; box-sizing: border-box; border: 1px solid var(--border-color); border-radius: 5px;">
-                        <textarea id="feedContent" placeholder="Detailed content or announcement..." required style="width: 100%; padding: 8px; margin-bottom: 10px; box-sizing: border-box; border: 1px solid var(--border-color); border-radius: 5px; min-height: 80px;"></textarea>
-                        <button type="submit" class="btn btn-primary" style="width: 100%;"><i class="fas fa-paper-plane"></i> Post to Feed</button>
-                    </form>
-                </div>
-                
-                <!-- FEED CONTENT LIST -->
-                <div id="feedContent" class="table-container" style="padding: 20px; text-align: center; flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px; margin-top: 20px;">
-                    <i class="fas fa-fire" style="font-size: 3em; color: #e74c3c; margin-bottom: 15px;"></i>
-                    <h1 style="margin: 0;">Project Status Feed (Firebase)</h1>
-                    <p style="margin-top: 10px;">Loading live data...</p>
-                </div>
-            </div>
-            
-            <div id="projectListView" style="display: none;">
+            <div id="techDashboardContainer">
                 <div class="filter-section">
                     <div class="filter-group">
                         <label for="projectFilter">Project:</label>
@@ -960,6 +844,36 @@
             </div>
         </div>
     </div>
+
+    <!-- ARCHIVE SELECTION MODAL (Kept from previous steps) -->
+    <div id="archiveSelectModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Select Projects to Archive</h2>
+                <span class="close-btn" id="closeArchiveSelectModalBtn">&times;</span>
+            </div>
+            <div class="settings-card">
+                <p>Choose which projects (all associated tasks/areas) should be moved to the Archive sheet.</p>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <label>Filter by Status:</label>
+                    <select id="archiveStatusFilter" class="w-1/2 p-2 border rounded">
+                        <option value="All">All Projects</option>
+                        <option value="Completed">Only Completed Projects</option>
+                        <option value="Active">Only Active Projects</option>
+                    </select>
+                </div>
+                <div class="project-list" id="archiveProjectList">
+                    <!-- Checkboxes will be rendered here -->
+                </div>
+            </div>
+            <div class="modal-footer" style="margin-top: 20px; display: flex; justify-content: space-between;">
+                <button id="archiveSelectAllBtn" class="btn btn-secondary">Select All</button>
+                <button id="confirmArchiveBtn" class="btn btn-danger" disabled>
+                    <i class="fas fa-archive"></i> Archive Selected (<span id="archiveCount">0</span>)
+                </button>
+            </div>
+        </div>
+    </div>
     
     <div id="notificationModal" class="modal">
         <div class="modal-content">
@@ -1090,8 +1004,6 @@
         <p>Loading...</p>
     </div>
 
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="https://apis.google.com/js/api.js"></script>
     <script src="https://accounts.google.com/gsi/client"></script>
     <script src="script.js"></script>
