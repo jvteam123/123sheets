@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
             google: {
                 API_KEY: "AIzaSyBxlhWwf3mlS_6Q3BiUsfpH21AsbhVmDw8",
                 CLIENT_ID: "221107133299-7r4vnbhpsdrnqo8tss0dqbtrr9ou683e.apps.googleusercontent.com",
-                SPREADSHEET_ID: "18uNdS6FdhiUEw0SN4o4BNos1KRCdWorVvmTDAL9QD_Q",
+                SPREADSHEET_ID: "15bhPCYDLChEwO6_uQfvUyq5_qMQp4h816uM26yq3rNY",
                 SCOPES: "https://www.googleapis.com/auth/spreadsheets",
             },
             cacheDuration: 5 * 60 * 1000, // 5 minutes in milliseconds
@@ -56,7 +56,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'],
                 });
                 
+                // Load necessary Google API libraries
                 await gapi.client.load('sheets', 'v4');
+                await gapi.client.load('oauth2', 'v2'); // Load OAuth2 API for user info fetching
+
                 this.initializeGsi();
 
             } catch (error) {
@@ -83,28 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
             this.tokenClient.requestAccessToken({ prompt: 'consent' });
         },
         
-        // Utility to implement exponential backoff
-        async fetchWithRetry(url, options, maxRetries = 3) {
-            for (let i = 0; i < maxRetries; i++) {
-                const delay = Math.pow(2, i) * 100; // 100ms, 200ms, 400ms...
-                try {
-                    const response = await fetch(url, options);
-                    if (response.ok) {
-                        return response;
-                    }
-                    if (i < maxRetries - 1) {
-                         await new Promise(resolve => setTimeout(resolve, delay));
-                    }
-                } catch (error) {
-                    if (i < maxRetries - 1) {
-                         await new Promise(resolve => setTimeout(resolve, delay));
-                    } else {
-                        throw error;
-                    }
-                }
-            }
-            throw new Error("Maximum fetch retries exceeded.");
-        },
+        // Removed fetchWithRetry - using gapi.client for reliability
 
         async handleTokenResponse(resp) {
             if (this.state.signInTimeoutId) {
@@ -116,25 +98,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 gapi.client.setToken(resp);
                 
                 try {
-                    // FIX: Use fetchWithRetry for the crucial user info call
-                    const userResponse = await this.fetchWithRetry('https://www.googleapis.com/oauth2/v2/userinfo', {
-                        headers: { 'Authorization': `Bearer ${resp.access_token}` }
-                    }, 3);
-                    
-                    const userInfo = await userResponse.json();
-                    
+                    // FIX: Use gapi.client.oauth2.userinfo.get() for reliability
+                    const userResponse = await gapi.client.oauth2.userinfo.get();
+                    const userInfo = userResponse.result;
+
                     if (userInfo && userInfo.email) {
                         this.state.currentUserEmail = userInfo.email; // Store email for Tech ID calculation
                         this.handleAuthorizedUser();
                     } else {
                         console.error("User info missing email:", userInfo);
-                        alert("Sign-in failed: Could not retrieve your email address from Google. Check permissions/network.");
+                        alert("Sign-in failed: Could not retrieve your email address from Google.");
                         this.handleSignedOutUser();
                     }
 
                 } catch(error) {
                      console.error("Failed to fetch user info after token response:", error);
-                     alert("Sign-in failed due to network or Google API issues. Please try again.");
+                     alert("Sign-in failed due to API connection issue. Please check your network and Google Sheet permissions.");
                      this.handleSignedOutUser();
                 }
             } else {
