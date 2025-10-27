@@ -54,20 +54,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     apiKey: this.config.google.API_KEY,
                     discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'],
                 });
-                // Initialize the Google Auth2 library before initializing GSI
+                
+                // Initialize Sheets client immediately
                 await gapi.client.load('sheets', 'v4');
-                gapi.auth2.init({
-                    client_id: this.config.google.CLIENT_ID,
-                    scope: this.config.google.SCOPES,
-                }).then(() => {
-                    this.initializeGsi();
-                }).catch(err => {
-                    console.error("GAPI Auth2 initialization failed:", err);
-                    this.handleSignedOutUser();
-                });
+
+                // FIX: Initialize the Google Identity Services (GIS) library 
+                // which is now the primary authentication method.
+                // We no longer rely on gapi.auth2.init which is deprecated.
+                this.initializeGsi();
 
             } catch (error) {
-                console.error("GAPI Error: Failed to initialize GAPI client.", error);
+                console.error("GAPI Client initialization failed:", error);
                 this.handleSignedOutUser();
             }
         },
@@ -75,6 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
             this.tokenClient = google.accounts.oauth2.initTokenClient({
                 client_id: this.config.google.CLIENT_ID,
                 scope: this.config.google.SCOPES,
+                // immediate: true tries to fetch a token without a popup
                 callback: this.handleTokenResponse.bind(this),
             });
             this.tokenClient.requestAccessToken({ prompt: 'none' });
@@ -98,16 +96,20 @@ document.addEventListener('DOMContentLoaded', () => {
             if (resp && resp.access_token) {
                 gapi.client.setToken(resp);
                 
-                // CRITICAL FIX: Ensure Auth2 is fully loaded and user data is available
-                // Before proceeding, wait for the user to be fully recognized by gapi.auth2
-                if (!gapi.auth2.getAuthInstance().isSignedIn.get()) {
-                    await gapi.auth2.getAuthInstance().signIn({ prompt: 'none' }).catch(err => {
-                        console.warn("Silent sign-in failed after token response:", err);
-                        // If silent sign-in fails, proceed to authorized user state.
+                // Fetch user information using the token before proceeding.
+                try {
+                    // This call is the modern way to get user info if gapi.auth2 is not fully available.
+                    const userResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+                        headers: { 'Authorization': `Bearer ${resp.access_token}` }
                     });
+                    const userInfo = await userResponse.json();
+                    this.state.currentUserEmail = userInfo.email; // Store email for Tech ID calculation
+
+                    this.handleAuthorizedUser();
+                } catch(error) {
+                     console.error("Failed to fetch user info after token response:", error);
+                     this.handleSignedOutUser();
                 }
-                
-                this.handleAuthorizedUser();
             } else {
                 console.log("Sign-in failed or was cancelled by the user.");
                 this.handleSignedOutUser();
@@ -125,16 +127,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         },
         getCurrentUserTechId() {
-            const authInstance = gapi.auth2.getAuthInstance();
-            const currentUser = authInstance ? authInstance.currentUser.get() : null;
-            
-            // CRITICAL FIX: Check for the existence of all objects before reading properties
-            if (currentUser && currentUser.getBasicProfile) {
-                const profile = currentUser.getBasicProfile();
-                return profile.getEmail().split('@')[0];
+            // FIX: Rely on the email stored in state from handleTokenResponse
+            if (this.state.currentUserEmail) {
+                return this.state.currentUserEmail.split('@')[0];
             }
-            // Fallback: This should ideally not happen after the token response.
-            console.error("Could not retrieve current user Tech ID. Auth state invalid.");
+            console.error("Could not retrieve current user Tech ID. Email missing.");
             return null;
         },
         async handleAuthorizedUser() {
