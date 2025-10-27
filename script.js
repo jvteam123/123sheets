@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
             google: {
                 API_KEY: "AIzaSyBxlhWwf3mlS_6Q3BiUsfpH21AsbhVmDw8",
                 CLIENT_ID: "221107133299-7r4vnbhpsdrnqo8tss0dqbtrr9ou683e.apps.googleusercontent.com",
-                SPREADSHEET_ID: "15bhPCYDLChEwO6_uQfvUyq5_qMQp4h816uM26yq3rNY",
+                SPREADSHEET_ID: "18uNdS6FdhiUEw0SN4o4BNos1KRCdWorVvmTDAL9QD_Q",
                 SCOPES: "https://www.googleapis.com/auth/spreadsheets",
             },
             cacheDuration: 5 * 60 * 1000, // 5 minutes in milliseconds
@@ -36,6 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 showDays: { 1: true, 2: false, 3: false, 4: false, 5: false },
                 disputeStatus: 'All',
             },
+            currentUserEmail: null, // Stored email from userinfo
         },
         elements: {},
 
@@ -55,12 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'],
                 });
                 
-                // Initialize Sheets client immediately
                 await gapi.client.load('sheets', 'v4');
-
-                // FIX: Initialize the Google Identity Services (GIS) library 
-                // which is now the primary authentication method.
-                // We no longer rely on gapi.auth2.init which is deprecated.
                 this.initializeGsi();
 
             } catch (error) {
@@ -72,7 +68,6 @@ document.addEventListener('DOMContentLoaded', () => {
             this.tokenClient = google.accounts.oauth2.initTokenClient({
                 client_id: this.config.google.CLIENT_ID,
                 scope: this.config.google.SCOPES,
-                // immediate: true tries to fetch a token without a popup
                 callback: this.handleTokenResponse.bind(this),
             });
             this.tokenClient.requestAccessToken({ prompt: 'none' });
@@ -87,6 +82,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
             this.tokenClient.requestAccessToken({ prompt: 'consent' });
         },
+        
+        // Utility to implement exponential backoff
+        async fetchWithRetry(url, options, maxRetries = 3) {
+            for (let i = 0; i < maxRetries; i++) {
+                const delay = Math.pow(2, i) * 100; // 100ms, 200ms, 400ms...
+                try {
+                    const response = await fetch(url, options);
+                    if (response.ok) {
+                        return response;
+                    }
+                    if (i < maxRetries - 1) {
+                         await new Promise(resolve => setTimeout(resolve, delay));
+                    }
+                } catch (error) {
+                    if (i < maxRetries - 1) {
+                         await new Promise(resolve => setTimeout(resolve, delay));
+                    } else {
+                        throw error;
+                    }
+                }
+            }
+            throw new Error("Maximum fetch retries exceeded.");
+        },
+
         async handleTokenResponse(resp) {
             if (this.state.signInTimeoutId) {
                 clearTimeout(this.state.signInTimeoutId);
@@ -96,18 +115,26 @@ document.addEventListener('DOMContentLoaded', () => {
             if (resp && resp.access_token) {
                 gapi.client.setToken(resp);
                 
-                // Fetch user information using the token before proceeding.
                 try {
-                    // This call is the modern way to get user info if gapi.auth2 is not fully available.
-                    const userResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+                    // FIX: Use fetchWithRetry for the crucial user info call
+                    const userResponse = await this.fetchWithRetry('https://www.googleapis.com/oauth2/v2/userinfo', {
                         headers: { 'Authorization': `Bearer ${resp.access_token}` }
-                    });
+                    }, 3);
+                    
                     const userInfo = await userResponse.json();
-                    this.state.currentUserEmail = userInfo.email; // Store email for Tech ID calculation
+                    
+                    if (userInfo && userInfo.email) {
+                        this.state.currentUserEmail = userInfo.email; // Store email for Tech ID calculation
+                        this.handleAuthorizedUser();
+                    } else {
+                        console.error("User info missing email:", userInfo);
+                        alert("Sign-in failed: Could not retrieve your email address from Google. Check permissions/network.");
+                        this.handleSignedOutUser();
+                    }
 
-                    this.handleAuthorizedUser();
                 } catch(error) {
                      console.error("Failed to fetch user info after token response:", error);
+                     alert("Sign-in failed due to network or Google API issues. Please try again.");
                      this.handleSignedOutUser();
                 }
             } else {
@@ -127,7 +154,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         },
         getCurrentUserTechId() {
-            // FIX: Rely on the email stored in state from handleTokenResponse
+            // FIX: Rely solely on the email stored in state
             if (this.state.currentUserEmail) {
                 return this.state.currentUserEmail.split('@')[0];
             }
@@ -154,8 +181,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.elements.loggedInUser.textContent = displayName;
                 this.elements.loggedInUserStatus.textContent = `ID: ${userTechId} - Status: Active`;
             } else {
+                // This case should ideally be caught in handleTokenResponse now, but kept for robustness
                 this.elements.loggedInUser.textContent = "User Not Found";
                 this.elements.loggedInUserStatus.textContent = "Status: Error retrieving ID";
+                console.error("Final check failed: User Tech ID is null after authorization.");
             }
             
             this.filterAndRenderProjects();
