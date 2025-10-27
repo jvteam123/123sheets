@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
             google: {
                 API_KEY: "AIzaSyBxlhWwf3mlS_6Q3BiUsfpH21AsbhVmDw8",
                 CLIENT_ID: "221107133299-7r4vnbhpsdrnqo8tss0dqbtrr9ou683e.apps.googleusercontent.com",
-                SPREADSHEET_ID: "18uNdS6FdhiUEw0SN4o4BNos1KRCdWorVvmTDAL9QD_Q",
+                SPREADSHEET_ID: "15bhPCYDLChEwO6_uQfvUyq5_qMQp4h816uM26yq3rNY",
                 SCOPES: "https://www.googleapis.com/auth/spreadsheets",
             },
             cacheDuration: 5 * 60 * 1000, // 5 minutes in milliseconds
@@ -54,7 +54,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     apiKey: this.config.google.API_KEY,
                     discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'],
                 });
-                this.initializeGsi();
+                // Initialize the Google Auth2 library before initializing GSI
+                await gapi.client.load('sheets', 'v4');
+                gapi.auth2.init({
+                    client_id: this.config.google.CLIENT_ID,
+                    scope: this.config.google.SCOPES,
+                }).then(() => {
+                    this.initializeGsi();
+                }).catch(err => {
+                    console.error("GAPI Auth2 initialization failed:", err);
+                    this.handleSignedOutUser();
+                });
+
             } catch (error) {
                 console.error("GAPI Error: Failed to initialize GAPI client.", error);
                 this.handleSignedOutUser();
@@ -86,6 +97,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (resp && resp.access_token) {
                 gapi.client.setToken(resp);
+                
+                // CRITICAL FIX: Ensure Auth2 is fully loaded and user data is available
+                // Before proceeding, wait for the user to be fully recognized by gapi.auth2
+                if (!gapi.auth2.getAuthInstance().isSignedIn.get()) {
+                    await gapi.auth2.getAuthInstance().signIn({ prompt: 'none' }).catch(err => {
+                        console.warn("Silent sign-in failed after token response:", err);
+                        // If silent sign-in fails, proceed to authorized user state.
+                    });
+                }
+                
                 this.handleAuthorizedUser();
             } else {
                 console.log("Sign-in failed or was cancelled by the user.");
@@ -104,30 +125,41 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         },
         getCurrentUserTechId() {
-            const currentUser = gapi.auth2.getAuthInstance().currentUser.get();
-            const profile = currentUser.getBasicProfile();
-            // Assuming Tech ID is the part of the email before @
-            return profile.getEmail().split('@')[0];
+            const authInstance = gapi.auth2.getAuthInstance();
+            const currentUser = authInstance ? authInstance.currentUser.get() : null;
+            
+            // CRITICAL FIX: Check for the existence of all objects before reading properties
+            if (currentUser && currentUser.getBasicProfile) {
+                const profile = currentUser.getBasicProfile();
+                return profile.getEmail().split('@')[0];
+            }
+            // Fallback: This should ideally not happen after the token response.
+            console.error("Could not retrieve current user Tech ID. Auth state invalid.");
+            return null;
         },
         async handleAuthorizedUser() {
             document.body.classList.remove('login-view-active');
             this.elements.authWrapper.style.display = 'none';
             this.elements.dashboardWrapper.style.display = 'flex';
             
-            const userTechId = this.getCurrentUserTechId();
-
             // Load data before trying to find user info
             if (!this.state.isAppInitialized) {
                 await this.loadDataFromSheets();
                 this.state.isAppInitialized = true;
             }
-            
-            const userInfo = this.state.users.find(u => u.techId === userTechId);
-            const displayName = userInfo ? userInfo.name : userTechId;
 
-            this.elements.loggedInUser.textContent = displayName;
-            // Update the new status element
-            this.elements.loggedInUserStatus.textContent = `ID: ${userTechId} - Status: Active`;
+            const userTechId = this.getCurrentUserTechId();
+            
+            if (userTechId) {
+                const userInfo = this.state.users.find(u => u.techId === userTechId);
+                const displayName = userInfo ? userInfo.name : userTechId;
+
+                this.elements.loggedInUser.textContent = displayName;
+                this.elements.loggedInUserStatus.textContent = `ID: ${userTechId} - Status: Active`;
+            } else {
+                this.elements.loggedInUser.textContent = "User Not Found";
+                this.elements.loggedInUserStatus.textContent = "Status: Error retrieving ID";
+            }
             
             this.filterAndRenderProjects();
             this.renderExtrasMenu();
@@ -649,7 +681,7 @@ document.addEventListener('DOMContentLoaded', () => {
         async handleQuickAssign(projectId) {
             const techId = this.getCurrentUserTechId();
             if (!techId) {
-                alert("Could not retrieve your Tech ID for assignment.");
+                alert("Could not retrieve your Tech ID for assignment. Please ensure you are fully signed in.");
                 return;
             }
             // Find the user object to get the Tech ID case sensitivity correct, if necessary
@@ -674,10 +706,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 const breakMins = project[`breakDurationMinutesDay${i}`] || '0';
                 
                 if (start !== 'N/A' && finish !== 'N/A') {
-                    const dailyMinutes = this.calculateTotalMinutes({ ...project, [`startTimeDay${i}`]: start, [`finishTimeDay${i}`]: finish, [`breakDurationMinutesDay${i}`]: breakMins });
+                    // Recalculate daily minutes accurately for the breakdown display
+                    let startMins = this.parseTimeToMinutes(project[`startTimeDay${i}`]);
+                    let finishMins = this.parseTimeToMinutes(project[`finishTimeDay${i}`]);
+                    if (finishMins < startMins) {
+                        finishMins += 24 * 60; // Handle overnight shift
+                    }
+                    const dailyMinutes = finishMins - startMins - (parseInt(breakMins, 10) || 0);
+
                     totalLoggedTime += dailyMinutes;
                     
-                    breakdown += `Day ${i} (Work: ${(dailyMinutes || 0)} mins):\n`;
+                    breakdown += `Day ${i} (Work: ${dailyMinutes} mins):\n`;
                     breakdown += `  Start: ${start}\n`;
                     breakdown += `  Finish: ${finish}\n`;
                     breakdown += `  Break: ${breakMins} mins\n\n`;
@@ -687,9 +726,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (totalLoggedTime === 0) {
                 breakdown += "No time entries logged yet.";
             } else {
-                const totalHours = (parseInt(project.totalMinutes, 10) / 60).toFixed(2) || '0.00';
-                breakdown += `--- Total Time ---\n`;
-                breakdown += `Total Minutes: ${project.totalMinutes || '0'} \n`;
+                const totalHours = (totalLoggedTime / 60).toFixed(2);
+                breakdown += `--- Total Calculated Time ---\n`;
+                breakdown += `Total Minutes: ${totalLoggedTime} \n`;
                 breakdown += `Total Hours: ${totalHours} hrs`;
             }
 
