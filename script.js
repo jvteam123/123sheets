@@ -7,17 +7,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 SPREADSHEET_ID: "18uNdS6FdhiUEw0SN4o4BNos1KRCdWorVvmTDAL9QD_Q",
                 SCOPES: "https://www.googleapis.com/auth/spreadsheets",
             },
-            // Corrected casing for Firebase config keys (CRITICAL FIX)
-            firebase: {
-                apiKey: "AIzaSyA1rWP0ky1L-4TqCwtm0OZZSa76EuymP8o",
-                authDomain: "mysocial-3b3fc.firebaseapp.com",
-                projectId: "mysocial-3b3fc",
-                storageBucket: "mysocial-3b3fc.firebasestorage.app",
-                messagingSenderId: "126693884353",
-                appId: "1:126693884353:web:2c0af86f20a7e9c8142f40",
-            },
             cacheDuration: 5 * 60 * 1000, // 5 minutes in milliseconds
-            sheetNames: { PROJECTS: "Projects", USERS: "Users", DISPUTES: "Disputes", EXTRAS: "Extras", ARCHIVE: "Archive", NOTIFICATIONS: "Notifications" },
+            sheetNames: { PROJECTS: "Projects", USERS: "Users", DISPUTES: "Disputes", EXTRAS: "Extras", ARCHIVE: "Archive", NOTIFICATIONS: "Notifications", BACKUP: "Backup" }, // Added BACKUP
             HEADER_MAP: { 'id': 'id', 'Fix Cat': 'fixCategory', 'Project Name': 'baseProjectName', 'Area/Task': 'areaTask', 'GSD': 'gsd', 'Assigned To': 'assignedTo', 'Status': 'status', 'Day 1 Start': 'startTimeDay1', 'Day 1 Finish': 'finishTimeDay1', 'Day 1 Break': 'breakDurationMinutesDay1', 'Day 2 Start': 'startTimeDay2', 'Day 2 Finish': 'finishTimeDay2', 'Day 2 Break': 'breakDurationMinutesDay2', 'Day 3 Start': 'startTimeDay3', 'Day 3 Finish': 'finishTimeDay3', 'Day 3 Break': 'breakDurationMinutesDay3', 'Day 4 Start': 'startTimeDay4', 'Day 4 Finish': 'finishTimeDay4', 'Day 4 Break': 'breakDurationMinutesDay4', 'Day 5 Start': 'startTimeDay5', 'Day 5 Finish': 'finishTimeDay5', 'Day 5 Break': 'breakDurationMinutesDay5', 'Total (min)': 'totalMinutes', 'Last Modified': 'lastModifiedTimestamp', 'Batch ID': 'batchId' },
             USER_HEADER_MAP: { 'id': 'id', 'name': 'name', 'email': 'email', 'techId': 'techId' },
             DISPUTE_HEADER_MAP: { 'id': 'id', 'Block ID': 'blockId', 'Project Name': 'projectName', 'Partial': 'partial', 'Phase': 'phase', 'UID': 'uid', 'RQA TechID': 'rqaTechId', 'Reason for Dispute': 'reasonForDispute', 'Tech ID': 'techId', 'Tech Name': 'techName', 'Team': 'team', 'Type': 'type', 'Category': 'category', 'Status': 'status' },
@@ -30,7 +21,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         },
         tokenClient: null,
-        firebaseDb: null, 
         state: {
             projects: [],
             users: [],
@@ -55,11 +45,8 @@ document.addEventListener('DOMContentLoaded', () => {
         init() {
             this.setupDOMReferences();
             this.attachEventListeners();
-            this.switchView('feed'); 
+            this.switchView('dashboard');
             gapi.load('client', this.initializeGapiClient.bind(this));
-            this.initializeFirebase(); 
-            // CRITICAL: The feed is rendered immediately, independent of GSI status.
-            this.renderDashboardFeed();
         },
         async initializeGapiClient() {
             try {
@@ -70,17 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.initializeGsi();
             } catch (error) {
                 console.error("GAPI Error: Failed to initialize GAPI client.", error);
-                // No longer calling handleSignedOutUser to avoid loading delay
-            }
-        },
-        initializeFirebase() {
-            try {
-                const firebaseConfig = this.config.firebase;
-                firebase.initializeApp(firebaseConfig);
-                this.firebaseDb = firebase.firestore();
-                console.log("Firebase Initialized.");
-            } catch (error) {
-                console.error("Firebase Initialization Error:", error);
+                this.handleSignedOutUser();
             }
         },
         initializeGsi() {
@@ -89,7 +66,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 scope: this.config.google.SCOPES,
                 callback: this.handleTokenResponse.bind(this),
             });
-            // Try silent auth to see if user is already signed in for sheets
             this.tokenClient.requestAccessToken({ prompt: 'none' });
         },
         handleAuthClick() {
@@ -100,7 +76,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 alert("Sign-in timed out. Please disable your pop-up blocker and try again. If the issue persists, you may need to allow third-party cookies for Google's sign-in service in your browser settings.");
             }, 20000);
 
-            // Force consent prompt for the user to sign in
             this.tokenClient.requestAccessToken({ prompt: 'consent' });
         },
         async handleTokenResponse(resp) {
@@ -113,7 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 gapi.client.setToken(resp);
                 this.handleAuthorizedUser();
             } else {
-                console.log("Silent sign-in failed or was cancelled by the user.");
+                console.log("Sign-in failed or was cancelled by the user.");
                 this.handleSignedOutUser();
             }
         },
@@ -128,33 +103,41 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.handleSignedOutUser();
             }
         },
+        getCurrentUserTechId() {
+            const currentUser = gapi.auth2.getAuthInstance().currentUser.get();
+            const profile = currentUser.getBasicProfile();
+            // Assuming Tech ID is the part of the email before @
+            return profile.getEmail().split('@')[0];
+        },
         async handleAuthorizedUser() {
-            // NOTE: We only need to load sheets data and UI here
             document.body.classList.remove('login-view-active');
             this.elements.authWrapper.style.display = 'none';
             this.elements.dashboardWrapper.style.display = 'flex';
             
-            // Check if user is signed in to GSI and update display
-            const authInstance = gapi.auth2.getAuthInstance();
-            const userProfile = authInstance.currentUser.get().getBasicProfile();
-            const userName = userProfile ? userProfile.getName() : "Signed In (Limited)";
+            const userTechId = this.getCurrentUserTechId();
 
-            this.elements.loggedInUser.textContent = userName;
-            
+            // Load data before trying to find user info
             if (!this.state.isAppInitialized) {
                 await this.loadDataFromSheets();
                 this.state.isAppInitialized = true;
-            } else {
-                this.switchView('feed');
             }
-            this.renderExtrasMenu(); 
-            this.updateDashboardHeaderStatus(); 
+            
+            const userInfo = this.state.users.find(u => u.techId === userTechId);
+            const displayName = userInfo ? userInfo.name : userTechId;
+
+            this.elements.loggedInUser.textContent = displayName;
+            // Update the new status element
+            this.elements.loggedInUserStatus.textContent = `ID: ${userTechId} - Status: Active`;
+            
+            this.filterAndRenderProjects();
+            this.renderExtrasMenu();
         },
         handleSignedOutUser() {
-            // Note: This is now only called when GSI fails or user signs out
             gapi.client.setToken(null);
             this.hideLoading();
-            this.elements.loggedInUser.textContent = "Not Signed In";
+            document.body.classList.add('login-view-active');
+            this.elements.authWrapper.style.display = 'block';
+            this.elements.dashboardWrapper.style.display = 'none';
             this.state.isAppInitialized = false;
         },
 
@@ -164,7 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
         handleApiError(err) {
             console.error("API Error:", err);
             if (err.status === 401 || err.status === 403) {
-                 alert("Your Google Sheets session has expired or you do not have permission. Please sign in again.");
+                 alert("Your session has expired or you do not have permission. Please sign in again.");
                  this.handleSignoutClick();
                  return true;
             }
@@ -193,7 +176,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         this.filterAndRenderProjects();
                         this.renderExtrasMenu();
                         this.renderNotificationBell();
-                        this.updateDashboardHeaderStatus(); 
                         return;
                     }
                 }
@@ -206,9 +188,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!projectSheet) throw new Error(`Sheet "${this.config.sheetNames.PROJECTS}" not found.`);
                 this.state.projectSheetId = projectSheet.properties.sheetId;
 
+                const ranges = [
+                    this.config.sheetNames.PROJECTS, 
+                    this.config.sheetNames.USERS, 
+                    this.config.sheetNames.DISPUTES, 
+                    this.config.sheetNames.EXTRAS, 
+                    this.config.sheetNames.NOTIFICATIONS, 
+                    this.config.sheetNames.ARCHIVE
+                ];
+                
                 const response = await gapi.client.sheets.spreadsheets.values.batchGet({
                     spreadsheetId: this.config.google.SPREADSHEET_ID,
-                    ranges: [this.config.sheetNames.PROJECTS, this.config.sheetNames.USERS, this.config.sheetNames.DISPUTES, this.config.sheetNames.EXTRAS, this.config.sheetNames.NOTIFICATIONS, this.config.sheetNames.ARCHIVE],
+                    ranges: ranges,
                 });
                 
                 const valueRanges = response.result.valueRanges;
@@ -235,7 +226,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.filterAndRenderProjects();
                 this.renderExtrasMenu();
                 this.renderNotificationBell();
-                this.updateDashboardHeaderStatus(); 
             } catch (err) {
                 if (!this.handleApiError(err)) {
                     alert("Could not load data. Check Spreadsheet ID and sharing permissions.");
@@ -246,12 +236,6 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         async updateRowInSheet(sheetName, rowIndex, dataObject) {
             this.showLoading("Saving...");
-            // CRITICAL: Check if Sheets is authorized before trying to write.
-            if (!gapi.auth2.getAuthInstance().isSignedIn.get()) {
-                alert("Operation failed: You must be signed in to edit Sheet data.");
-                this.hideLoading();
-                return;
-            }
             try {
                 const headersResult = await gapi.client.sheets.spreadsheets.values.get({
                     spreadsheetId: this.config.google.SPREADSHEET_ID,
@@ -266,6 +250,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 else headerMap = this.config.HEADER_MAP;
                 
                 const values = [headers.map(header => {
+                    // Search for the key in the reverse map (value to key)
                     const propName = Object.keys(headerMap).find(key => key.toLowerCase() === header.trim().toLowerCase());
                     return propName ? (dataObject[headerMap[propName]] !== undefined ? dataObject[headerMap[propName]] : "") : "";
                 })];
@@ -287,12 +272,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         },
         async appendRowsToSheet(sheetName, rows) {
-            // CRITICAL: Check if Sheets is authorized before trying to write.
-             if (!gapi.auth2.getAuthInstance().isSignedIn.get()) {
-                alert("Operation failed: You must be signed in to edit Sheet data.");
-                this.hideLoading();
-                return;
-            }
             try {
                 await gapi.client.sheets.spreadsheets.values.append({
                     spreadsheetId: this.config.google.SPREADSHEET_ID, range: `${sheetName}!A1`,
@@ -306,12 +285,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         },
         async deleteSheetRows(sheetName, rowsToDelete) {
-             // CRITICAL: Check if Sheets is authorized before trying to write.
-             if (!gapi.auth2.getAuthInstance().isSignedIn.get()) {
-                alert("Operation failed: You must be signed in to delete Sheet data.");
-                this.hideLoading();
-                return;
-            }
             this.showLoading("Deleting rows...");
             try {
                 if (rowsToDelete.length === 0) return;
@@ -321,6 +294,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!sheet) throw new Error(`Sheet "${sheetName}" not found.`);
                 const sheetId = sheet.properties.sheetId;
 
+                // Sort rows in descending order to avoid index shifting problems during batch delete
                 const sortedRows = rowsToDelete.sort((a, b) => b - a);
                 const requests = sortedRows.map(rowIndex => ({
                     deleteDimension: {
@@ -348,7 +322,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: document.body, authWrapper: document.getElementById('auth-wrapper'),
                 dashboardWrapper: document.querySelector('.dashboard-wrapper'), signInBtn: document.getElementById('signInBtn'),
                 loggedInUser: document.getElementById('loggedInUser'), signOutBtn: document.getElementById('signOutBtn'),
-                refreshDataBtn: document.getElementById('refreshDataBtn'), // In projectListView
+                refreshDataBtn: document.getElementById('refreshDataBtn'),
                 refreshDataBtnTlSummary: document.getElementById('refreshDataBtnTlSummary'),
                 projectTable: document.getElementById('projectTable'),
                 projectTableHead: document.getElementById('projectTable').querySelector('thead tr'), projectTableBody: document.getElementById('projectTableBody'),
@@ -362,22 +336,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 projectFilter: document.getElementById('projectFilter'),
                 fixCategoryFilter: document.getElementById('fixCategoryFilter'),
                 dayCheckboxes: { 2: document.getElementById('showDay2'), 3: document.getElementById('showDay3'), 4: document.getElementById('showDay4'), 5: document.getElementById('showDay5'),},
-                
-                // >>> MODIFIED/NEW VIEW REFERENCES <<<
-                openDashboardBtn: document.getElementById('openDashboardBtn'), // Now opens Feed
-                openProjectListBtn: document.getElementById('openProjectListBtn'), // NEW: Projects List
-                feedDashboardContainer: document.getElementById('feedDashboardContainer'), // NEW: Feed Container
-                projectListView: document.getElementById('projectListView'), // MODIFIED: Old Dashboard Container
-                refreshFeedBtn: document.getElementById('refreshFeedBtn'), // NEW: Feed refresh button
-                
-                // NEW FEED REFERENCES
-                newFeedItemForm: document.getElementById('newFeedItemForm'),
-                feedTitle: document.getElementById('feedTitle'),
-                feedContent: document.getElementById('feedContent'),
-                dashboardStatusLabel: document.getElementById('dashboardStatusLabel'), // ADDED STATUS LABEL
-
+                openDashboardBtn: document.getElementById('openDashboardBtn'),
                 openDowntimePageBtn: document.getElementById('openDowntimePageBtn'),
-                openProjectSettingsBtn: document.getElementById('openProjectSettingsBtn'), 
+                openProjectSettingsBtn: document.getElementById('openProjectSettingsBtn'), techDashboardContainer: document.getElementById('techDashboardContainer'),
                 projectSettingsView: document.getElementById('projectSettingsView'),
                 openTlSummaryBtn: document.getElementById('openTlSummaryBtn'), tlSummaryView: document.getElementById('tlSummaryView'),
                 summaryTableBody: document.getElementById('summaryTableBody'),
@@ -387,8 +348,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 disputeForm: document.getElementById('disputeForm'), disputesTableBody: document.getElementById('disputesTableBody'),
                 disputeStatusFilter: document.getElementById('disputeStatusFilter'),
                 openAdminSettingsBtn: document.getElementById('openAdminSettingsBtn'), adminSettingsView: document.getElementById('adminSettingsView'),
-                // >>> END MODIFIED/NEW VIEW REFERENCES <<<
-
                 timeEditModal: document.getElementById('timeEditModal'), closeTimeEditModalBtn: document.getElementById('closeTimeEditModalBtn'),
                 timeEditForm: document.getElementById('timeEditForm'), timeEditTitle: document.getElementById('timeEditTitle'),
                 timeEditProjectId: document.getElementById('timeEditProjectId'), timeEditDay: document.getElementById('timeEditDay'),
@@ -420,6 +379,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 closeArchiveModalBtn: document.getElementById('closeArchiveModalBtn'),
                 copyArchiveBtn: document.getElementById('copyArchiveBtn'),
                 archiveTable: document.getElementById('archiveTable'),
+                // NEW Archive Selection Modal Elements
+                archiveSelectModal: document.getElementById('archiveSelectModal'),
+                closeArchiveSelectModalBtn: document.getElementById('closeArchiveSelectModalBtn'),
+                archiveStatusFilter: document.getElementById('archiveStatusFilter'),
+                archiveProjectList: document.getElementById('archiveProjectList'),
+                archiveSelectAllBtn: document.getElementById('archiveSelectAllBtn'),
+                confirmArchiveBtn: document.getElementById('confirmArchiveBtn'),
+                archiveCount: document.getElementById('archiveCount'),
+                loggedInUserStatus: document.getElementById('loggedInUserStatus'), 
             };
         },
         attachEventListeners() {
@@ -457,13 +425,15 @@ document.addEventListener('DOMContentLoaded', () => {
             this.elements.closeArchiveModalBtn.onclick = () => this.elements.archiveModal.classList.remove('is-open');
             this.elements.copyArchiveBtn.onclick = () => this.handleCopyArchive();
 
-            // >>> NEW NAVIGATION/FEED LISTENERS <<<
-            this.elements.openDashboardBtn.onclick = () => this.switchView('feed'); 
-            this.elements.openProjectListBtn.onclick = () => this.switchView('list'); 
-            this.elements.refreshFeedBtn.onclick = () => this.handleRefreshFeed(); 
-            this.elements.newFeedItemForm.addEventListener('submit', (e) => this.handleNewFeedItemSubmit(e)); 
-            // >>> END NEW NAVIGATION/FEED LISTENERS <<<
+            // Archive Modal Listeners
+            this.elements.closeArchiveSelectModalBtn.onclick = () => this.elements.archiveSelectModal.classList.remove('is-open');
+            this.elements.archiveStatusFilter.onchange = () => this.renderArchiveProjectSelection(this.elements.archiveStatusFilter.value);
+            this.elements.archiveProjectList.onchange = () => this.updateArchiveCount();
+            this.elements.archiveSelectAllBtn.onclick = () => this.handleArchiveSelectAll();
+            this.elements.confirmArchiveBtn.onclick = () => this.handleConfirmArchive();
 
+
+            this.elements.openDashboardBtn.onclick = () => this.switchView('dashboard');
             this.elements.openDowntimePageBtn.onclick = () => { window.location.href = 'downtime.html'; };
             this.elements.openProjectSettingsBtn.onclick = () => this.switchView('settings');
             this.elements.openTlSummaryBtn.onclick = () => this.switchView('summary');
@@ -522,23 +492,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 summaryBtn.innerHTML = '<i class="fas fa-sync-alt icon"></i> Refresh Data';
             }, this.config.cacheDuration);
         },
-        
-        handleRefreshFeed() {
-            this.renderDashboardFeed();
-            this.showMessage("Feed refreshed from Firebase.");
-        },
-
-        updateDashboardHeaderStatus() {
-            const projectCount = this.state.projects.length;
-            if (this.elements.dashboardStatusLabel) {
-                if (projectCount > 0) {
-                    this.elements.dashboardStatusLabel.textContent = `(${projectCount} Tasks Loaded)`;
-                } else {
-                    this.elements.dashboardStatusLabel.textContent = `(No Projects Loaded)`;
-                }
-            }
-        },
-
         switchView(viewName) {
             if (viewName === 'admin') {
                 const code = prompt("Please enter the admin passkey to continue:");
@@ -548,9 +501,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         
-            // >>> MODIFIED VIEW RESET <<<
-            this.elements.feedDashboardContainer.style.display = 'none'; 
-            this.elements.projectListView.style.display = 'none'; 
+            this.elements.techDashboardContainer.style.display = 'none';
             this.elements.projectSettingsView.style.display = 'none';
             this.elements.tlSummaryView.style.display = 'none';
             this.elements.userManagementView.style.display = 'none';
@@ -558,22 +509,15 @@ document.addEventListener('DOMContentLoaded', () => {
             this.elements.adminSettingsView.style.display = 'none';
         
             this.elements.openDashboardBtn.classList.remove('active');
-            this.elements.openProjectListBtn.classList.remove('active'); 
             this.elements.openProjectSettingsBtn.classList.remove('active');
             this.elements.openTlSummaryBtn.classList.remove('active');
             this.elements.openUserManagementBtn.classList.remove('active');
             this.elements.openDisputeBtn.classList.remove('active');
             this.elements.openAdminSettingsBtn.classList.remove('active');
-            // >>> END MODIFIED VIEW RESET <<<
         
-            if (viewName === 'feed') { 
-                this.elements.feedDashboardContainer.style.display = 'flex';
+            if (viewName === 'dashboard') {
+                this.elements.techDashboardContainer.style.display = 'flex';
                 this.elements.openDashboardBtn.classList.add('active');
-                this.renderDashboardFeed();
-            } else if (viewName === 'list') { 
-                this.elements.projectListView.style.display = 'flex';
-                this.elements.openProjectListBtn.classList.add('active');
-                this.filterAndRenderProjects();
             } else if (viewName === 'settings') {
                 this.renderProjectSettings();
                 this.elements.projectSettingsView.style.display = 'block';
@@ -596,181 +540,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.elements.openAdminSettingsBtn.classList.add('active');
             }
         },
-        
-        // FUNCTION: Helper to check if user is signed in (KEPT FOR OTHER USES)
-        isUserSignedIn() {
-            const authInstance = gapi.auth2.getAuthInstance();
-            return authInstance && authInstance.isSignedIn.get();
-        },
-
-        async handleNewFeedItemSubmit(event) {
-            event.preventDefault();
-            
-            this.showLoading("Posting update to feed...");
-            
-            // Bypass GSI check and use fallback user 
-            let userName = "Anonymous Poster";
-            try {
-                // Try to get the name if GSI happened to complete in the background
-                const userProfile = gapi.auth2.getAuthInstance().currentUser.get().getBasicProfile();
-                if (userProfile) {
-                     userName = userProfile.getName() || userProfile.getEmail().split('@')[0];
-                }
-            } catch (e) {
-                // Ignore GSI error, proceed with anonymous post
-                console.warn("GSI/Firebase Auth profile could not be retrieved. Posting as Anonymous.");
-            }
-            
-            const newPost = {
-                title: this.elements.feedTitle.value,
-                content: this.elements.feedContent.value,
-                user: userName, 
-                timestamp: firebase.firestore.FieldValue.serverTimestamp(), 
-                likes: 0,
-                comments: 0,
-            };
-
-            try {
-                // This call will succeed because we rely on 'allow create: if true;' rule
-                await this.firebaseDb.collection('feedItems').add(newPost);
-                
-                this.elements.newFeedItemForm.reset();
-                this.showMessage("Update posted successfully!");
-                this.renderDashboardFeed(); 
-                
-            } catch (error) {
-                alert("Error posting feed item. The Firebase server rejected the request. Ensure your Firestore rules allow 'create' access (e.g., if true).");
-                console.error("Firebase Write Error:", error);
-            } finally {
-                this.hideLoading();
-            }
-        },
-
-        async handleLikeClick(docId) {
-            
-            this.showLoading("Updating like count...");
-            try {
-                const docRef = this.firebaseDb.collection('feedItems').doc(docId);
-                
-                // This transaction will succeed if Firebase Rules are set to 'allow update: if true;'
-                await this.firebaseDb.runTransaction(async (transaction) => {
-                    const doc = await transaction.get(docRef);
-                    if (!doc.exists) {
-                        throw new Error("Document does not exist!");
-                    }
-                    const newLikes = (doc.data().likes || 0) + 1;
-                    transaction.update(docRef, { likes: newLikes });
-                });
-                
-                this.showMessage("Post liked!");
-                this.renderDashboardFeed(); 
-                
-            } catch (error) {
-                alert("Failed to like post. The Firebase server rejected the request. Ensure your Firestore rules allow 'update' access (e.g., if true).");
-                console.error("Firebase Like Error:", error);
-            } finally {
-                this.hideLoading();
-            }
-        },
-
-        async renderDashboardFeed() {
-            const feedContent = document.getElementById('feedContent');
-            const postFormContainer = document.querySelector('#feedDashboardContainer > .filter-section');
-            
-            // Apply the new CSS class to the post form container (part of UI fix)
-            if (postFormContainer) {
-                postFormContainer.classList.remove('filter-section');
-                postFormContainer.classList.add('post-form-card');
-            }
-
-            if (!this.firebaseDb) {
-                feedContent.innerHTML = `<i class="fas fa-exclamation-circle" style="font-size: 2em; color: var(--danger-color); margin-bottom: 15px;"></i>
-                                         <div style="text-align: center; max-width: 500px; margin: 0 auto;"><p>Firebase is not initialized.</p><p>Please ensure your Firebase credentials are correctly loaded.</p></div>`;
-                return;
-            }
-    
-            // Show loading state
-            feedContent.innerHTML = `<div style="text-align: center; margin: 50px 0;"><i class="fas fa-spinner fa-spin" style="font-size: 2em; color: var(--primary-color); margin-bottom: 15px;"></i>
-                                     <p>Loading real-time feed data from Firebase...</p></div>`;
-            
-            try {
-                // This call should succeed if rules are set to allow read: if true;
-                const snapshot = await this.firebaseDb.collection('feedItems').orderBy('timestamp', 'desc').limit(10).get();
-                
-                let html = '<div style="width: 100%; max-width: 600px; margin: 0 auto; padding-top: 5px;">';
-                
-                // Helper to safely encode text for display (prevents HTML injection)
-                const escapeHTML = (str) => {
-                    if (!str) return '';
-                    const div = document.createElement('div');
-                    div.textContent = str;
-                    return div.innerHTML;
-                };
-
-                if (snapshot.empty) {
-                    const projectId = this.config.firebase.projectId;
-                    const firestoreLink = `https://console.firebase.google.com/project/${projectId}/firestore/data/~2F`;
-                    
-                    console.warn(`[FEED SETUP]: The 'feedItems' collection is currently empty. Please visit the Firebase Firestore Console to create the collection and add your first feed item: ${firestoreLink}`);
-
-                    // Default Welcome Item (Simulated)
-                    html += `<div class="feed-post-card type-welcome">
-                                <h4 style="color: var(--info-color);"><i class="fas fa-hand-sparkles"></i> Welcome to Project Tracker V3!</h4>
-                                <p style="margin: 5px 0 10px; font-size: 0.95em;">This is a simulated welcome message. Your real-time dashboard feed is working and ready to display live project updates!</p>
-                                <small style="color: #777; border-top: 1px solid #c9e6f0; padding-top: 5px; display: block; font-size: 0.8em;">
-                                    <i class="fas fa-user"></i> System &bull; <i class="fas fa-clock"></i> Just now
-                                </small>
-                             </div>`;
-                    
-                    // Setup Guide Item with link
-                    html += `<div class="feed-post-card type-setup">
-                                <h4 style="color: var(--warning-color);"><i class="fas fa-tools"></i> Firebase Setup: Collection Empty</h4>
-                                <p style="margin: 5px 0 10px; font-size: 0.95em;">The <code>feedItems</code> collection is empty. To populate this feed, you need to create the collection in your Firebase console and add your first item.</p>
-                                <a href="${firestoreLink}" target="_blank" style="color: var(--warning-color); font-weight: 600; display: inline-block; margin-top: 10px;"><i class="fas fa-external-link-alt"></i> Go to Firebase Firestore Console</a>
-                             </div>`;
-                } else {
-                    snapshot.forEach(doc => {
-                        const item = doc.data();
-                        const docId = doc.id; 
-                        const timestamp = item.timestamp ? new Date(item.timestamp.toDate()).toLocaleString() : 'N/A';
-                        const likes = item.likes || 0;
-                        const comments = item.comments || 0; 
-                        
-                        const safeTitle = escapeHTML(item.title || 'Untitled Update');
-                        const safeContent = escapeHTML(item.content || 'No content.');
-
-                        // Use new class structure
-                        html += `<div class="feed-post-card">
-                                    <h4 style="margin-bottom: 5px;">${safeTitle}</h4>
-                                    <p style="margin: 0 0 10px 0; font-size: 0.95em; white-space: pre-wrap;">${safeContent}</p>
-                                    <small style="color: #777; padding-top: 5px; display: block; font-size: 0.8em;">
-                                        <i class="fas fa-user"></i> ${item.user || 'System'} 
-                                        &bull; <i class="fas fa-clock"></i> ${timestamp}
-                                    </small>
-                                    
-                                    <!-- Interaction Buttons -->
-                                    <div class="interaction-bar" style="margin-top: 10px; display: flex; gap: 20px; border-top: 1px solid #e0e0e0; padding-top: 10px;">
-                                        <button onclick="ProjectTrackerApp.handleLikeClick('${docId}')" style="background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 5px;">
-                                            <i class="far fa-thumbs-up"></i> <span>Like (${likes})</span>
-                                        </button>
-                                        <button onclick="alert('Comment feature is not yet implemented.')" style="background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 5px;">
-                                            <i class="far fa-comment"></i> <span>Comment (${comments})</span>
-                                        </button>
-                                    </div>
-                                    </div>`;
-                    });
-                }
-                
-                html += '</div>';
-                feedContent.innerHTML = html;
-            } catch (e) {
-                feedContent.innerHTML = `<div class="feed-post-card" style="text-align: center;">
-                                         <i class="fas fa-skull-crossbones" style="font-size: 2em; color: var(--danger-color); margin-bottom: 15px;"></i>
-                                         <p>Error fetching feed data. Check your Firebase rules and connection: ${e.message}</p></div>`;
-                console.error("Firebase Fetch Error:", e);
-            }
-        },
-
         populateFilterDropdowns() {
             const projects = [...new Set(this.state.projects.map(p => p.baseProjectName).filter(Boolean))].sort();
             this.elements.projectFilter.innerHTML = '<option value="All">All Projects</option>' + projects.map(p => `<option value="${p}">${this.formatProjectName(p)}</option>`).join('');
@@ -806,14 +575,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
         
-            // CRITICAL: Check if Sheets is authorized before trying to write.
-             if (!gapi.auth2.getAuthInstance().isSignedIn.get()) {
-                alert("Operation failed: You must be signed in to add Sheets data.");
-                this.hideLoading();
-                submitBtn.disabled = false;
-                return;
-            }
-
             const gsd = document.getElementById('gsd').value; 
             const batchId = `batch_${Date.now()}`;
             
@@ -883,7 +644,57 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.filterAndRenderProjects();
                 await this.updateRowInSheet(this.config.sheetNames.PROJECTS, project._row, project);
             }
-        },        
+        },
+        // NEW FEATURE: Quick Assign Handler
+        async handleQuickAssign(projectId) {
+            const techId = this.getCurrentUserTechId();
+            if (!techId) {
+                alert("Could not retrieve your Tech ID for assignment.");
+                return;
+            }
+            // Find the user object to get the Tech ID case sensitivity correct, if necessary
+            const user = this.state.users.find(u => u.techId === techId);
+            const finalTechId = user ? user.techId : techId;
+
+            if (confirm(`Assign this task to yourself (${finalTechId})?`)) {
+                await this.handleProjectUpdate(projectId, { 'assignedTo': finalTechId });
+            }
+        },
+        // NEW FEATURE: Total Minutes Breakdown
+        openTimeBreakdown(projectId) {
+            const project = this.state.projects.find(p => p.id === projectId);
+            if (!project) return;
+            
+            let breakdown = `Time Breakdown for ${this.formatProjectName(project.baseProjectName)} - ${project.areaTask}\n\n`;
+            let totalLoggedTime = 0;
+            
+            for (let i = 1; i <= 5; i++) {
+                const start = this.formatTo12Hour(project[`startTimeDay${i}`]) || 'N/A';
+                const finish = this.formatTo12Hour(project[`finishTimeDay${i}`]) || 'N/A';
+                const breakMins = project[`breakDurationMinutesDay${i}`] || '0';
+                
+                if (start !== 'N/A' && finish !== 'N/A') {
+                    const dailyMinutes = this.calculateTotalMinutes({ ...project, [`startTimeDay${i}`]: start, [`finishTimeDay${i}`]: finish, [`breakDurationMinutesDay${i}`]: breakMins });
+                    totalLoggedTime += dailyMinutes;
+                    
+                    breakdown += `Day ${i} (Work: ${(dailyMinutes || 0)} mins):\n`;
+                    breakdown += `  Start: ${start}\n`;
+                    breakdown += `  Finish: ${finish}\n`;
+                    breakdown += `  Break: ${breakMins} mins\n\n`;
+                }
+            }
+            
+            if (totalLoggedTime === 0) {
+                breakdown += "No time entries logged yet.";
+            } else {
+                const totalHours = (parseInt(project.totalMinutes, 10) / 60).toFixed(2) || '0.00';
+                breakdown += `--- Total Time ---\n`;
+                breakdown += `Total Minutes: ${project.totalMinutes || '0'} \n`;
+                breakdown += `Total Hours: ${totalHours} hrs`;
+            }
+
+            alert(breakdown);
+        },
         getCurrentTime() {
             const now = new Date();
             let hours = now.getHours();
@@ -955,14 +766,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (!confirm(`This will create new '${toFix}' tasks for all '${fromFix}' areas in project '${this.formatProjectName(baseProjectName)}'. The original tech will be assigned. Continue?`)) return;
             this.showLoading(`Releasing ${fromFix} to ${toFix}...`);
-
-            // CRITICAL: Check if Sheets is authorized before trying to write.
-             if (!gapi.auth2.getAuthInstance().isSignedIn.get()) {
-                alert("Operation failed: You must be signed in to release data.");
-                this.hideLoading();
-                return;
-            }
-
             try {
                 const tasksToClone = this.state.projects.filter(p => p.baseProjectName === baseProjectName && p.fixCategory === fromFix);
                 if (tasksToClone.length === 0) throw new Error(`No tasks found for ${baseProjectName} in ${fromFix}.`);
@@ -1005,14 +808,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const numToAdd = parseInt(prompt("How many extra areas do you want to add?", "1"), 10);
             if (isNaN(numToAdd) || numToAdd < 1) return; 
             this.showLoading(`Adding ${numToAdd} area(s)...`);
-
-            // CRITICAL: Check if Sheets is authorized before trying to write.
-             if (!gapi.auth2.getAuthInstance().isSignedIn.get()) {
-                alert("Operation failed: You must be signed in to add Sheet data.");
-                this.hideLoading();
-                return;
-            }
-
             try {
                 const projectTasks = this.state.projects.filter(p => p.baseProjectName === baseProjectName && p.fixCategory === 'Fix1');
                 if (projectTasks.length === 0) throw new Error(`Could not find project: ${baseProjectName}`);
@@ -1054,24 +849,17 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         async handleRollback(baseProjectName, fixToDelete) {
             if (!confirm(`DANGER: This will permanently delete all '${fixToDelete}' tasks for project '${this.formatProjectName(baseProjectName)}'. This cannot be undone. Continue?`)) return;
-            
-            // CRITICAL: Check if Sheets is authorized before trying to write.
-             if (!gapi.auth2.getAuthInstance().isSignedIn.get()) {
-                alert("Operation failed: You must be signed in to delete Sheet data.");
-                this.hideLoading();
-                return;
-            }
-
             this.showLoading(`Rolling back ${fixToDelete}...`);
             try {
-                const tasksToClone = this.state.projects.filter(p => p.baseProjectName === baseProjectName && p.fixCategory === fixToDelete);
-                if (tasksToClone.length === 0) {
+                const tasksToDelete = this.state.projects.filter(p => p.baseProjectName === baseProjectName && p.fixCategory === fixToDelete);
+                if (tasksToDelete.length === 0) {
                     throw new Error(`No tasks found to delete for ${fixToDelete}.`);
                 }
         
-                const rowNumbersToDelete = tasksToClone.map(p => p._row);
+                const rowNumbersToDelete = tasksToDelete.map(p => p._row);
                 await this.deleteSheetRows(this.config.sheetNames.PROJECTS, rowNumbersToDelete);
                 
+                // Update local state before refresh
                 this.state.projects = this.state.projects.filter(p => !(p.baseProjectName === baseProjectName && p.fixCategory === fixToDelete));
                 
                 this.renderProjectSettings();
@@ -1090,19 +878,13 @@ document.addEventListener('DOMContentLoaded', () => {
         async handleDeleteProject(baseProjectName) {
             if (!confirm(`EXTREME DANGER: This will permanently delete the ENTIRE project '${this.formatProjectName(baseProjectName)}', including all of its fix stages. This cannot be undone. Are you absolutely sure?`)) return;
             
-            // CRITICAL: Check if Sheets is authorized before trying to write.
-             if (!gapi.auth2.getAuthInstance().isSignedIn.get()) {
-                alert("Operation failed: You must be signed in to delete Sheet data.");
-                this.hideLoading();
-                return;
-            }
-
             this.showLoading("Deleting project...");
             try {
                 const tasksToDelete = this.state.projects.filter(p => p.baseProjectName === baseProjectName);
                 if (tasksToDelete.length > 0) {
                     const rowNumbersToDelete = tasksToDelete.map(p => p._row);
                     await this.deleteSheetRows(this.config.sheetNames.PROJECTS, rowNumbersToDelete);
+                    // Update local state before refresh
                     this.state.projects = this.state.projects.filter(p => p.baseProjectName !== baseProjectName);
                 }
         
@@ -1120,14 +902,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!isSilent) {
                 if (!confirm("This will reorganize the entire 'Projects' sheet by Project Name and Fix Stage, inserting blank rows and applying colors. This action cannot be undone. Are you sure?")) return;
             }
-
-            // CRITICAL: Check if Sheets is authorized before trying to write.
-             if (!gapi.auth2.getAuthInstance().isSignedIn.get()) {
-                 if (!isSilent) alert("Operation failed: You must be signed in to reorganize Sheet data.");
-                this.hideLoading();
-                return;
-            }
-
             this.showLoading("Reorganizing sheet...");
             try {
                 localStorage.removeItem('projectTrackerCache');
@@ -1150,13 +924,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 let lastFix = null;
                 let currentRowIndex = 1;
                 sortedProjects.forEach(project => {
-                    currentRowIndex++;
-                    if ( (lastProject !== null && project.baseProjectName !== lastProject) || (lastFix !== null && project.fixCategory !== lastFix) ) {
+                    // Check for Project separator
+                    if ( (lastProject !== null && project.baseProjectName !== lastProject) ) {
                          newSheetData.push(new Array(headers.length).fill(""));
                          currentRowIndex++;
+                         lastFix = null; // Reset Fix separator check after project break
                     }
+                    // Check for Fix separator
+                    if ( (lastFix !== null && project.fixCategory !== lastFix) ) {
+                        // Only add an extra separator if it's not immediately following a project separator (which adds one row)
+                        if (lastProject === project.baseProjectName) {
+                            newSheetData.push(new Array(headers.length).fill(""));
+                            currentRowIndex++;
+                        }
+                    }
+                    
                     const row = headers.map(header => project[this.config.HEADER_MAP[header.trim()]] || "");
                     newSheetData.push(row);
+                    currentRowIndex++;
+
                     const color = this.config.FIX_COLORS[project.fixCategory];
                     if (color) {
                         formattingRequests.push({
@@ -1171,6 +957,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     lastFix = project.fixCategory;
                 });
 
+                // Clear existing content and formatting
                 await gapi.client.sheets.spreadsheets.values.clear({ spreadsheetId: this.config.google.SPREADSHEET_ID, range: `${this.config.sheetNames.PROJECTS}!A2:Z`, });
                 const clearFormattingRequest = {
                     repeatCell: {
@@ -1184,7 +971,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     resource: { requests: [clearFormattingRequest] }
                 });
 
-
+                // Write the new data and apply formatting
                 await gapi.client.sheets.spreadsheets.values.update({
                     spreadsheetId: this.config.google.SPREADSHEET_ID, range: `${this.config.sheetNames.PROJECTS}!A2`,
                     valueInputOption: 'USER_ENTERED', resource: { values: newSheetData }
@@ -1202,6 +989,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch(error) {
                 if (!this.handleApiError(error)) {
                     alert("Error reorganizing sheet: " + error.message);
+                    await this.loadDataFromSheets(true);
                 }
             } finally {
                 this.hideLoading();
@@ -1387,6 +1175,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         row.insertCell().textContent = project.gsd || '';
                         
                         const assignedToCell = row.insertCell();
+                        
+                        // Assignment Dropdown
                         const assignedToSelect = document.createElement('select');
                         assignedToSelect.innerHTML = '<option value="">Available</option>' + this.state.users.map(u => `<option value="${u.techId}" ${project.assignedTo === u.techId ? 'selected' : ''}>${u.techId}</option>`).join('');
                         assignedToSelect.onchange = (e) => this.handleProjectUpdate(project.id, { 'assignedTo': e.target.value });
@@ -1396,7 +1186,24 @@ document.addEventListener('DOMContentLoaded', () => {
                             assignedToSelect.disabled = true;
                         }
                         
-                        assignedToCell.appendChild(assignedToSelect);
+                        // NEW FEATURE: Quick Assign Button
+                        if (project.status === 'Available' && !project.assignedTo) {
+                            const quickAssignBtn = document.createElement('button');
+                            quickAssignBtn.textContent = 'Assign Me';
+                            quickAssignBtn.className = 'btn btn-quick-assign btn-small';
+                            quickAssignBtn.onclick = () => this.handleQuickAssign(project.id);
+                            
+                            // Group assignment elements
+                            const assignGroup = document.createElement('div');
+                            assignGroup.style.display = 'flex';
+                            assignGroup.style.alignItems = 'center';
+                            assignGroup.style.gap = '5px';
+                            assignGroup.appendChild(assignedToSelect);
+                            assignGroup.appendChild(quickAssignBtn);
+                            assignedToCell.appendChild(assignGroup);
+                        } else {
+                            assignedToCell.appendChild(assignedToSelect);
+                        }
                         
                         const statusCell = row.insertCell();
                         statusCell.innerHTML = `<span class="status status-${(project.status || "available").toLowerCase().replace(/[^a-z0-9]/gi, '')}">${project.status}</span>`;
@@ -1424,8 +1231,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                         
                         const totalMinCell = row.insertCell();
-                        totalMinCell.className = 'total-minutes-cell';
+                        totalMinCell.className = 'total-minutes-cell clickable'; // Added clickable class
                         totalMinCell.textContent = project.totalMinutes || '';
+                        // NEW FEATURE: Time breakdown on click
+                        if (project.totalMinutes) {
+                             totalMinCell.onclick = () => this.openTimeBreakdown(project.id);
+                             totalMinCell.style.cursor = 'pointer';
+                        }
+
 
                         const actionsCell = row.insertCell();
                         const btnGroup = document.createElement('div');
@@ -1497,11 +1310,42 @@ document.addEventListener('DOMContentLoaded', () => {
         renderUserManagement() {
             const tableBody = this.elements.userTableBody;
             tableBody.innerHTML = "";
+            
+            // NEW FEATURE: Calculate user performance stats
+            const userStats = this.state.projects.reduce((acc, project) => {
+                const techId = project.assignedTo;
+                if (!techId) return acc;
+
+                if (!acc[techId]) {
+                    acc[techId] = { assignedTasks: 0, completedTasks: 0, totalMinutes: 0 };
+                }
+                
+                acc[techId].assignedTasks++;
+                if (project.status === 'Completed' || project.status === 'No Refix') {
+                    acc[techId].completedTasks++;
+                }
+                acc[techId].totalMinutes += (parseInt(project.totalMinutes, 10) || 0);
+
+                return acc;
+            }, {});
+
             this.state.users.forEach(user => {
+                const stats = userStats[user.techId] || { assignedTasks: 0, completedTasks: 0, totalMinutes: 0 };
+                
+                const tasksCompleted = `${stats.completedTasks}/${stats.assignedTasks}`;
+                const totalHours = (stats.totalMinutes / 60).toFixed(1);
+                
                 const row = tableBody.insertRow();
                 row.insertCell().textContent = user.name;
                 row.insertCell().textContent = user.email;
                 row.insertCell().textContent = user.techId;
+                
+                // NEW FEATURE: Display user performance
+                row.insertCell().innerHTML = `
+                    <p style="margin:0;">Completed: <b>${tasksCompleted}</b></p>
+                    <p style="margin:0; font-size: 0.9em; color: var(--info-color);">Time: ${totalHours} hrs</p>
+                `;
+
                 const actionsCell = row.insertCell();
                 actionsCell.className = 'user-actions';
 
@@ -1544,13 +1388,6 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             const rowIndex = this.elements.userRow.value;
 
-            // CRITICAL: Check if Sheets is authorized before trying to write.
-             if (!gapi.auth2.getAuthInstance().isSignedIn.get()) {
-                alert("Operation failed: You must be signed in to edit Sheet data.");
-                this.hideLoading();
-                return;
-            }
-
             if (rowIndex) {
                 user._row = rowIndex;
                 await this.updateRowInSheet(this.config.sheetNames.USERS, rowIndex, user);
@@ -1560,8 +1397,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 const headers = getHeaders.result.values[0];
                 const newRow = [headers.map(h => {
-                    const propName = this.config.USER_HEADER_MAP[Object.keys(this.config.USER_HEADER_MAP).find(k => k.toLowerCase() === h.toLowerCase())];
-                    return user[propName] || "";
+                    // Find the sheet header corresponding to the property name in the user object
+                    const propName = Object.keys(this.config.USER_HEADER_MAP).find(k => k.toLowerCase() === h.toLowerCase());
+                    return user[this.config.USER_HEADER_MAP[propName]] || "";
                 })];
                 await this.appendRowsToSheet(this.config.sheetNames.USERS, newRow);
             }
@@ -1570,12 +1408,6 @@ document.addEventListener('DOMContentLoaded', () => {
             this.renderUserManagement();
         },
         async handleDeleteUser(user) {
-             // CRITICAL: Check if Sheets is authorized before trying to write.
-             if (!gapi.auth2.getAuthInstance().isSignedIn.get()) {
-                alert("Operation failed: You must be signed in to delete Sheet data.");
-                this.hideLoading();
-                return;
-            }
             if (confirm(`Are you sure you want to delete user: ${user.name}?`)) {
                 await this.deleteSheetRows(this.config.sheetNames.USERS, [user._row]);
                 await this.loadDataFromSheets(true);
@@ -1632,13 +1464,6 @@ document.addEventListener('DOMContentLoaded', () => {
         async handleDisputeFormSubmit(event) {
             event.preventDefault();
             this.showLoading("Saving dispute...");
-
-            // CRITICAL: Check if Sheets is authorized before trying to write.
-             if (!gapi.auth2.getAuthInstance().isSignedIn.get()) {
-                alert("Operation failed: You must be signed in to submit a dispute.");
-                this.hideLoading();
-                return;
-            }
 
             const disputeData = {
                 id: `dispute_${Date.now()}`,
@@ -1725,6 +1550,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const selector = target.dataset.clipboardTarget;
                 const elementToCopy = document.querySelector(selector);
                 if (elementToCopy) {
+                    // Use textContent for span elements but try to use innerText or a more reliable method if possible
                     navigator.clipboard.writeText(elementToCopy.textContent.trim()).then(() => {
                         target.classList.add('copied');
                         setTimeout(() => target.classList.remove('copied'), 1500);
@@ -1754,13 +1580,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const dispute = this.state.disputes.find(d => d.id === disputeId);
             if (!dispute) return;
 
-             // CRITICAL: Check if Sheets is authorized before trying to write.
-             if (!gapi.auth2.getAuthInstance().isSignedIn.get()) {
-                alert("Operation failed: You must be signed in to update Sheet data.");
-                this.hideLoading();
-                return;
-            }
-
             dispute.status = newStatus;
             await this.updateRowInSheet(this.config.sheetNames.DISPUTES, dispute._row, dispute);
             
@@ -1769,13 +1588,6 @@ document.addEventListener('DOMContentLoaded', () => {
         async handleDeleteDispute(disputeId) {
             const dispute = this.state.disputes.find(d => d.id === disputeId);
             if (!dispute) return;
-
-             // CRITICAL: Check if Sheets is authorized before trying to write.
-             if (!gapi.auth2.getAuthInstance().isSignedIn.get()) {
-                alert("Operation failed: You must be signed in to delete Sheet data.");
-                this.hideLoading();
-                return;
-            }
 
             if (confirm(`Are you sure you want to delete the dispute for project "${this.formatProjectName(dispute.projectName)}"?`)) {
                 try {
@@ -1815,10 +1627,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                     </div>
                     <div class="settings-card" style="margin-top: 20px;">
-                        <h3><i class="fas fa-archive icon"></i> Archiving</h3>
-                        <p>Archive completed projects from the 21st of last month to the 20th of this month.</p>
+                        <h3><i class="fas fa-archive icon"></i> Archiving & Backup</h3>
+                        <p>Archive completed projects or create a full backup snapshot.</p>
                         <div class="btn-group">
-                            <button class="btn btn-info" onclick="ProjectTrackerApp.handleArchiveProjects()">Archive Completed Projects</button>
+                            <button class="btn btn-info" onclick="ProjectTrackerApp.handleArchiveProjects()">Archive Projects</button>
+                            <button class="btn btn-primary" onclick="ProjectTrackerApp.handleBackupProjects()">Backup Projects (Snapshot)</button>
                             <button class="btn btn-secondary" onclick="ProjectTrackerApp.renderArchiveModal()">View Archive</button>
                         </div>
                     </div>
@@ -1853,13 +1666,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (!confirm("This will check and correct the headers for all sheets. This won't affect your data, but it's recommended to have a backup. Continue?")) return;
             
-            // CRITICAL: Check if Sheets is authorized before trying to write.
-             if (!gapi.auth2.getAuthInstance().isSignedIn.get()) {
-                alert("Operation failed: You must be signed in to edit Sheet data.");
-                this.hideLoading();
-                return;
-            }
-
             this.showLoading("Verifying and Fixing DB Headers...");
             try {
                 const sheetConfigs = [
@@ -1868,7 +1674,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     { name: this.config.sheetNames.DISPUTES, map: this.config.DISPUTE_HEADER_MAP },
                     { name: this.config.sheetNames.EXTRAS, map: this.config.EXTRAS_HEADER_MAP },
                     { name: this.config.sheetNames.NOTIFICATIONS, map: this.config.NOTIFICATIONS_HEADER_MAP },
-                    { name: this.config.sheetNames.ARCHIVE, map: this.config.HEADER_MAP }
+                    { name: this.config.sheetNames.ARCHIVE, map: this.config.HEADER_MAP },
+                    { name: this.config.sheetNames.BACKUP, map: this.config.HEADER_MAP } // Added BACKUP sheet
                 ];
 
                 for (const config of sheetConfigs) {
@@ -1913,43 +1720,184 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!confirm("This will scan for errors and orphaned rows. Continue?")) return;
             alert("Placeholder: Clean DB logic would run here.");
         },
+        
+        openArchiveSelectModal() {
+            this.elements.archiveSelectModal.classList.add('is-open');
+            this.elements.archiveStatusFilter.value = 'All'; // Reset filter to default
+            this.renderArchiveProjectSelection('All');
+        },
+
+        renderArchiveProjectSelection(filterStatus) {
+            const container = this.elements.archiveProjectList;
+            container.innerHTML = '';
+            
+            const uniqueProjectsMap = {};
+
+            this.state.projects.forEach(p => {
+                const name = p.baseProjectName;
+                if (!uniqueProjectsMap[name]) {
+                    uniqueProjectsMap[name] = { 
+                        name: this.formatProjectName(name),
+                        total: 0, 
+                        completed: 0,
+                        rows: []
+                    };
+                }
+                uniqueProjectsMap[name].total++;
+                if (p.status === 'Completed' || p.status === 'No Refix') {
+                    uniqueProjectsMap[name].completed++;
+                }
+                // Store all unique project names and their completion status
+                uniqueProjectsMap[name].rows.push(p);
+            });
+
+            let projectKeys = Object.keys(uniqueProjectsMap).sort();
+
+            if (filterStatus !== 'All') {
+                projectKeys = projectKeys.filter(key => {
+                    const project = uniqueProjectsMap[key];
+                    const allCompleted = project.total === project.completed;
+                    const anyActive = project.completed < project.total;
+
+                    if (filterStatus === 'Completed') return allCompleted;
+                    if (filterStatus === 'Active') return anyActive;
+                    return true;
+                });
+            }
+
+            if (projectKeys.length === 0) {
+                container.innerHTML = `<p class="p-4 text-gray-500">No projects match the filter criteria. All tasks must be loaded/completed to be fully visible.</p>`;
+            } else {
+                projectKeys.forEach(key => {
+                    const project = uniqueProjectsMap[key];
+                    const allCompleted = project.total === project.completed;
+                    
+                    const item = document.createElement('div');
+                    item.className = 'project-item cursor-pointer hover:bg-gray-50';
+                    item.innerHTML = `
+                        <input type="checkbox" id="archive-${key}" name="archiveProject" value="${key}" 
+                                data-project-status="${allCompleted ? 'Completed' : 'Active'}"
+                                class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                        <label for="archive-${key}" class="project-name-label flex justify-between items-center w-full">
+                            <span>${project.name}</span>
+                            <span class="project-stats">${allCompleted ? '✅ All Done' : `🟡 Active (${project.completed}/${project.total})`}</span>
+                        </label>
+                    `;
+                    container.appendChild(item);
+                });
+            }
+
+            this.updateArchiveCount();
+        },
+
+        handleArchiveSelectAll() {
+            const checkboxes = this.elements.archiveProjectList.querySelectorAll('input[type="checkbox"]');
+            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+            checkboxes.forEach(cb => {
+                cb.checked = !allChecked;
+            });
+            this.updateArchiveCount();
+        },
+
+        updateArchiveCount() {
+            const count = this.elements.archiveProjectList.querySelectorAll('input[type="checkbox"]:checked').length;
+            this.elements.archiveCount.textContent = count;
+            this.elements.confirmArchiveBtn.disabled = count === 0;
+        },
+
+        async handleConfirmArchive() {
+            const selectedCheckboxes = this.elements.archiveProjectList.querySelectorAll('input[type="checkbox"]:checked');
+            const projectNamesToArchive = Array.from(selectedCheckboxes).map(cb => cb.value);
+
+            if (projectNamesToArchive.length === 0) {
+                alert("Please select at least one project to archive.");
+                return;
+            }
+
+            const confirmationMessage = `Are you sure you want to archive ${projectNamesToArchive.length} project(s)? This will move ALL associated tasks to the Archive sheet and delete them from the main Projects sheet. This cannot be undone.`;
+            if (!confirm(confirmationMessage)) {
+                return;
+            }
+            
+            this.elements.archiveSelectModal.classList.remove('is-open');
+            this.showLoading(`Archiving ${projectNamesToArchive.length} project(s)...`);
+
+            try {
+                // 1. Identify ALL tasks belonging to the selected projects
+                const projectsToArchive = this.state.projects.filter(p => projectNamesToArchive.includes(p.baseProjectName));
+                
+                if (projectsToArchive.length === 0) {
+                    alert(`No tasks found for the selected projects. Archive aborted.`);
+                    return;
+                }
+                
+                const getHeaders = await gapi.client.sheets.spreadsheets.values.get({
+                    spreadsheetId: this.config.google.SPREADSHEET_ID,
+                    range: `${this.config.sheetNames.PROJECTS}!1:1`,
+                });
+                const headers = getHeaders.result.values[0];
+                
+                // 2. Sort projects before archiving for grouping/readability in the archive sheet
+                const sortedProjectsToArchive = [...projectsToArchive].sort((a, b) => {
+                    if (a.baseProjectName < b.baseProjectName) return -1;
+                    if (a.baseProjectName > b.baseProjectName) return 1;
+                    const fixNumA = parseInt((a.fixCategory || 'Fix0').replace('Fix', ''), 10);
+                    const fixNumB = parseInt((b.fixCategory || 'Fix0').replace('Fix', ''), 10);
+                    return fixNumA - fixNumB;
+                });
+                
+                const rowsToAppend = sortedProjectsToArchive.map(project => {
+                    return headers.map(header => {
+                        const propNameKey = Object.keys(this.config.HEADER_MAP).find(k => k.toLowerCase() === header.trim().toLowerCase());
+                        if (propNameKey) {
+                            const propName = this.config.HEADER_MAP[propNameKey];
+                            return project[propName] || "";
+                        }
+                        return "";
+                    });
+                });
+        
+                // 3. Append to Archive Sheet
+                await this.appendRowsToSheet(this.config.sheetNames.ARCHIVE, rowsToAppend);
+                
+                // 4. Delete rows from Projects sheet
+                const rowNumbersToDelete = projectsToArchive.map(p => p._row);
+                await this.deleteSheetRows(this.config.sheetNames.PROJECTS, rowNumbersToDelete);
+                
+                // 5. Update local state to remove archived projects from dashboard
+                const archivedIds = new Set(projectsToArchive.map(p => p.id));
+                this.state.projects = this.state.projects.filter(p => !archivedIds.has(p.id));
+        
+                await this.loadDataFromSheets(true);
+                alert(`${projectNamesToArchive.length} project(s) (${projectsToArchive.length} tasks) have been archived successfully!`);
+        
+            } catch (error) {
+                console.error("Archive Error Details:", error); 
+                alert(`Error archiving projects: ${error.message}. Please check console for details.`);
+                await this.loadDataFromSheets(true);
+            } finally {
+                this.hideLoading();
+            }
+        },
+
         async handleArchiveProjects() {
+            // This function now opens the selection modal
+            this.openArchiveSelectModal();
+        },
+
+        async handleBackupProjects() {
             const code = prompt("This is a sensitive operation. Please enter the admin code to proceed:");
             if (code !== "248617") { 
                 alert("Incorrect code. Operation cancelled."); 
                 return; 
             }
         
-            const today = new Date();
-            const year = today.getFullYear();
-            const month = today.getMonth();
+            if (!confirm(`This will append a snapshot of ALL current projects to the "${this.config.sheetNames.BACKUP}" sheet. This is for recovery purposes only. Continue?`)) return;
         
-            const endDate = new Date(year, month, 21);
-            const startDate = new Date(year, month - 1, 21);
-        
-            const dateRangeStr = `from ${startDate.toLocaleDateString()} to ${new Date(endDate - 1).toLocaleDateString()}`;
-        
-            if (!confirm(`Are you sure you want to archive all completed projects ${dateRangeStr}? This cannot be undone.`)) return;
-
-            // CRITICAL: Check if Sheets is authorized before trying to write.
-             if (!gapi.auth2.getAuthInstance().isSignedIn.get()) {
-                alert("Operation failed: You must be signed in to archive Sheet data.");
-                this.hideLoading();
-                return;
-            }
-
-            this.showLoading("Archiving completed projects...");
+            this.showLoading("Creating project backup...");
             try {
-                const projectsToArchive = this.state.projects.filter(p => {
-                    if (p.status === 'Completed' && p.lastModifiedTimestamp) {
-                        const modifiedDate = new Date(p.lastModifiedTimestamp);
-                        return modifiedDate >= startDate && modifiedDate < endDate;
-                    }
-                    return false;
-                });
-        
-                if (projectsToArchive.length === 0) {
-                    alert(`No completed projects found within the date range: ${dateRangeStr}.`);
+                if (this.state.projects.length === 0) {
+                    alert(`No active projects to back up.`);
                     return;
                 }
         
@@ -1958,22 +1906,38 @@ document.addEventListener('DOMContentLoaded', () => {
                     range: `${this.config.sheetNames.PROJECTS}!1:1`,
                 });
                 const headers = getHeaders.result.values[0];
-        
-                const rowsToAppend = projectsToArchive.map(project => {
-                    return headers.map(header => project[this.config.HEADER_MAP[header.trim()]] || "");
+                
+                // Add a timestamp header row to the backup
+                const backupTimestampRow = new Array(headers.length).fill("");
+                if (headers.includes('id')) {
+                    const idIndex = headers.indexOf('id');
+                    backupTimestampRow[idIndex] = `BACKUP SNAPSHOT: ${new Date().toLocaleString()}`;
+                } else {
+                    backupTimestampRow[0] = `BACKUP SNAPSHOT: ${new Date().toLocaleString()}`;
+                }
+                const rowsToAppend = [backupTimestampRow, headers]; // Write timestamp, then headers
+                
+                // Prepare project data rows
+                this.state.projects.forEach(project => {
+                    // Map data keys to sheet headers
+                    const row = headers.map(header => {
+                        const propNameKey = Object.keys(this.config.HEADER_MAP).find(k => k.toLowerCase() === header.trim().toLowerCase());
+                        if (propNameKey) {
+                            const propName = this.config.HEADER_MAP[propNameKey];
+                            return project[propName] || "";
+                        }
+                        return "";
+                    });
+                    rowsToAppend.push(row);
                 });
         
-                await this.appendRowsToSheet(this.config.sheetNames.ARCHIVE, rowsToAppend);
-                
-                const rowNumbersToDelete = projectsToArchive.map(p => p._row);
-                await this.deleteSheetRows(this.config.sheetNames.PROJECTS, rowNumbersToDelete);
+                await this.appendRowsToSheet(this.config.sheetNames.BACKUP, rowsToAppend);
         
-                await this.loadDataFromSheets(true);
-                alert(`${projectsToArchive.length} completed project(s) have been archived successfully.`);
+                alert(`Successfully backed up ${this.state.projects.length} projects to the "${this.config.sheetNames.BACKUP}" sheet.`);
         
             } catch (error) {
-                alert("Error archiving projects: " + error.message);
-                await this.loadDataFromSheets(true);
+                alert("Error creating backup: " + error.message);
+                console.error("Backup Error:", error);
             } finally {
                 this.hideLoading();
             }
@@ -1993,9 +1957,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const startTimeStr = project[`startTimeDay${day}`] || '';
             const finishTimeStr = project[`finishTimeDay${day}`] || '';
         
-            // CORRECTED RegEx: Removed the extra closing parenthesis after \d+
-            const startTimeMatch = startTimeStr.match(/(\d+:\d+)\s*(AM|PM)/i); 
-            const finishTimeMatch = finishTimeStr.match(/(\d+:\d+)\s*(AM|PM)/i); 
+            const startTimeMatch = startTimeStr.match(/(\d+:\d+)\s*(AM|PM)/i);
+            const finishTimeMatch = finishTimeStr.match(/(\d+:\d+)\s*(AM|PM)/i);
         
             this.elements.editStartTime.value = startTimeMatch ? startTimeMatch[1] : startTimeStr;
             this.elements.editStartTimeAmPm.value = startTimeMatch ? startTimeMatch[2].toUpperCase() : 'AM';
@@ -2035,7 +1998,7 @@ document.addEventListener('DOMContentLoaded', () => {
             this.elements.notificationViewBtn = newBtn;
         
             newBtn.onclick = () => {
-                this.switchView('list'); // MODIFIED: Go to 'list' view
+                this.switchView('dashboard');
                 this.populateFilterDropdowns();
                 this.state.filters.project = projectFilterValue;
                 this.elements.projectFilter.value = projectFilterValue;
@@ -2054,9 +2017,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (this.elements.loadingOverlay) { 
                 this.elements.loadingOverlay.classList.remove('is-open');
             } 
-        },
-        showMessage(text, isError = false) {
-             console.log(isError ? `Error: ${text}` : `Message: ${text}`);
         },
         showFilterSpinner() { },
         hideFilterSpinner() { },
@@ -2131,13 +2091,6 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             const rowIndex = this.elements.extraRow.value;
 
-            // CRITICAL: Check if Sheets is authorized before trying to write.
-             if (!gapi.auth2.getAuthInstance().isSignedIn.get()) {
-                alert("Operation failed: You must be signed in to edit Sheet data.");
-                this.hideLoading();
-                return;
-            }
-
             if (rowIndex) {
                 extra._row = rowIndex;
                 await this.updateRowInSheet(this.config.sheetNames.EXTRAS, rowIndex, extra);
@@ -2154,12 +2107,6 @@ document.addEventListener('DOMContentLoaded', () => {
             this.renderExtrasManagement();
         },
         async handleDeleteExtra(extraId) {
-             // CRITICAL: Check if Sheets is authorized before trying to write.
-             if (!gapi.auth2.getAuthInstance().isSignedIn.get()) {
-                alert("Operation failed: You must be signed in to delete Sheet data.");
-                this.hideLoading();
-                return;
-            }
             const extra = this.state.extras.find(e => e.id === extraId);
             if (!extra) return;
 
@@ -2180,6 +2127,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 "Extras": Object.keys(this.config.EXTRAS_HEADER_MAP),
                 "Archive": Object.keys(this.config.HEADER_MAP),
                 "Notifications": Object.keys(this.config.NOTIFICATIONS_HEADER_MAP),
+                "Backup": Object.keys(this.config.HEADER_MAP), // Added Backup
             };
 
             let content = '';
@@ -2284,12 +2232,12 @@ document.addEventListener('DOMContentLoaded', () => {
                             }
                         };
 
-                        if (this.elements.openProjectListBtn.classList.contains('active') && this.state.filters.project === n.projectName) {
+                        if (this.elements.openDashboardBtn.classList.contains('active') && this.state.filters.project === n.projectName) {
                             markAsRead();
                             return; 
                         }
 
-                        this.switchView('list'); // MODIFIED: Go to 'list' view
+                        this.switchView('dashboard');
                         
                         setTimeout(() => {
                             this.populateFilterDropdowns(); 
@@ -2318,13 +2266,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (!confirm(`This will complete the current task and create a new follow-up part. Continue?`)) return;
             this.showLoading("Creating follow-up task...");
-
-            // CRITICAL: Check if Sheets is authorized before trying to write.
-             if (!gapi.auth2.getAuthInstance().isSignedIn.get()) {
-                alert("Operation failed: You must be signed in to modify Sheet data.");
-                this.hideLoading();
-                return;
-            }
 
             try {
                 const updates = {
