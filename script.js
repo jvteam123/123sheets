@@ -685,7 +685,7 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         // NEW FEATURE: Quick Assign Handler
         async handleQuickAssign(projectId) {
-            // Use the new helper to get the canonical Tech ID
+            // Use the new helper to get the canonical Tech ID (e.g., 7236LE)
             const techId = this.getTechIdFromEmail(this.state.currentUserEmail);
             if (!techId) {
                 alert("Could not retrieve your Tech ID for assignment. Please ensure you are fully signed in.");
@@ -695,7 +695,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const finalTechId = techId;
 
             if (confirm(`Assign this task to yourself (${finalTechId})?`)) {
-                await this.handleProjectUpdate(projectId, { 'assignedTo': finalTechId });
+                const project = this.state.projects.find(p => p.id === projectId);
+                if (project) {
+                    // 1. Optimistically update local state BEFORE API call to instantly hide button
+                    project.assignedTo = finalTechId;
+                    this.filterAndRenderProjects();
+                    
+                    // 2. Perform asynchronous update to sheet (handleProjectUpdate handles the sheet logic)
+                    await this.handleProjectUpdate(projectId, { 'assignedTo': finalTechId });
+                }
             }
         },
         // NEW FEATURE: Total Minutes Breakdown
