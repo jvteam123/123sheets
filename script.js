@@ -36,7 +36,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 showDays: { 1: true, 2: false, 3: false, 4: false, 5: false },
                 disputeStatus: 'All',
             },
-            currentUserEmail: null, // Stored email from userinfo
         },
         elements: {},
 
@@ -56,10 +55,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'],
                 });
                 
-                // Load necessary Google API libraries
+                // Initialize Sheets client immediately
                 await gapi.client.load('sheets', 'v4');
-                await gapi.client.load('oauth2', 'v2'); // Load OAuth2 API for user info fetching
 
+                // FIX: Initialize the Google Identity Services (GIS) library 
+                // which is now the primary authentication method.
+                // We no longer rely on gapi.auth2.init which is deprecated.
                 this.initializeGsi();
 
             } catch (error) {
@@ -71,6 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
             this.tokenClient = google.accounts.oauth2.initTokenClient({
                 client_id: this.config.google.CLIENT_ID,
                 scope: this.config.google.SCOPES,
+                // immediate: true tries to fetch a token without a popup
                 callback: this.handleTokenResponse.bind(this),
             });
             this.tokenClient.requestAccessToken({ prompt: 'none' });
@@ -85,9 +87,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             this.tokenClient.requestAccessToken({ prompt: 'consent' });
         },
-        
-        // Removed fetchWithRetry - using gapi.client for reliability
-
         async handleTokenResponse(resp) {
             if (this.state.signInTimeoutId) {
                 clearTimeout(this.state.signInTimeoutId);
@@ -97,23 +96,18 @@ document.addEventListener('DOMContentLoaded', () => {
             if (resp && resp.access_token) {
                 gapi.client.setToken(resp);
                 
+                // Fetch user information using the token before proceeding.
                 try {
-                    // FIX: Use gapi.client.oauth2.userinfo.get() for reliability
-                    const userResponse = await gapi.client.oauth2.userinfo.get();
-                    const userInfo = userResponse.result;
+                    // This call is the modern way to get user info if gapi.auth2 is not fully available.
+                    const userResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+                        headers: { 'Authorization': `Bearer ${resp.access_token}` }
+                    });
+                    const userInfo = await userResponse.json();
+                    this.state.currentUserEmail = userInfo.email; // Store email for Tech ID calculation
 
-                    if (userInfo && userInfo.email) {
-                        this.state.currentUserEmail = userInfo.email; // Store email for Tech ID calculation
-                        this.handleAuthorizedUser();
-                    } else {
-                        console.error("User info missing email:", userInfo);
-                        alert("Sign-in failed: Could not retrieve your email address from Google.");
-                        this.handleSignedOutUser();
-                    }
-
+                    this.handleAuthorizedUser();
                 } catch(error) {
                      console.error("Failed to fetch user info after token response:", error);
-                     alert("Sign-in failed due to API connection issue. Please check your network and Google Sheet permissions.");
                      this.handleSignedOutUser();
                 }
             } else {
@@ -133,7 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         },
         getCurrentUserTechId() {
-            // FIX: Rely solely on the email stored in state
+            // FIX: Rely on the email stored in state from handleTokenResponse
             if (this.state.currentUserEmail) {
                 return this.state.currentUserEmail.split('@')[0];
             }
@@ -160,10 +154,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.elements.loggedInUser.textContent = displayName;
                 this.elements.loggedInUserStatus.textContent = `ID: ${userTechId} - Status: Active`;
             } else {
-                // This case should ideally be caught in handleTokenResponse now, but kept for robustness
                 this.elements.loggedInUser.textContent = "User Not Found";
                 this.elements.loggedInUserStatus.textContent = "Status: Error retrieving ID";
-                console.error("Final check failed: User Tech ID is null after authorization.");
             }
             
             this.filterAndRenderProjects();
