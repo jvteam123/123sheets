@@ -132,13 +132,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.handleSignedOutUser();
             }
         },
-        getCurrentUserTechId() {
-            // FIX: Rely solely on the email stored in state
-            if (this.state.currentUserEmail) {
-                return this.state.currentUserEmail.split('@')[0];
-            }
-            console.error("Could not retrieve current user Tech ID. Email missing.");
-            return null;
+        // NEW Helper: Retrieves the canonical Tech ID from the Users list based on email prefix
+        getTechIdFromEmail(email) {
+            if (!email) return null;
+            const techIdCandidate = email.split('@')[0];
+            // Perform case-insensitive search in the users list
+            const user = this.state.users.find(u => u.techId.toLowerCase() === techIdCandidate.toLowerCase());
+            // Return the canonical TechID (from the sheet) or the fallback email prefix
+            return user ? user.techId : techIdCandidate; 
         },
         async handleAuthorizedUser() {
             document.body.classList.remove('login-view-active');
@@ -151,7 +152,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.state.isAppInitialized = true;
             }
 
-            const userTechId = this.getCurrentUserTechId();
+            const userTechId = this.getTechIdFromEmail(this.state.currentUserEmail);
             
             if (userTechId) {
                 const userInfo = this.state.users.find(u => u.techId === userTechId);
@@ -684,14 +685,14 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         // NEW FEATURE: Quick Assign Handler
         async handleQuickAssign(projectId) {
-            const techId = this.getCurrentUserTechId();
+            // Use the new helper to get the canonical Tech ID
+            const techId = this.getTechIdFromEmail(this.state.currentUserEmail);
             if (!techId) {
                 alert("Could not retrieve your Tech ID for assignment. Please ensure you are fully signed in.");
                 return;
             }
-            // Find the user object to get the Tech ID case sensitivity correct, if necessary
-            const user = this.state.users.find(u => u.techId.toLowerCase() === techId.toLowerCase());
-            const finalTechId = user ? user.techId : techId;
+            
+            const finalTechId = techId;
 
             if (confirm(`Assign this task to yourself (${finalTechId})?`)) {
                 await this.handleProjectUpdate(projectId, { 'assignedTo': finalTechId });
@@ -2329,6 +2330,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     id: `proj_${Date.now()}`,
                     areaTask: `${originalTask.areaTask.split(' - ')[0]} - Part ${nextPartNumber}`,
                     status: 'Available',
+                    assignedTo: originalTask.assignedTo, // Keep the same assignment
                     startTimeDay1: "", finishTimeDay1: "", breakDurationMinutesDay1: "",
                     startTimeDay2: "", finishTimeDay2: "", breakDurationMinutesDay2: "",
                     startTimeDay3: "", finishTimeDay3: "", breakDurationMinutesDay3: "",
