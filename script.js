@@ -138,8 +138,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const techIdCandidate = email.split('@')[0];
             // Perform case-insensitive search in the users list
             const user = this.state.users.find(u => u.techId.toLowerCase() === techIdCandidate.toLowerCase());
-            // Return the canonical TechID (from the sheet) or the fallback email prefix
-            return user ? user.techId : techIdCandidate; 
+            
+            // CRITICAL FIX: Only return a TechID if a match is found in the Users list. 
+            // If the user's Tech ID isn't in the canonical Users list, they cannot quick assign.
+            return user ? user.techId : null; 
         },
         async handleAuthorizedUser() {
             document.body.classList.remove('login-view-active');
@@ -152,14 +154,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.state.isAppInitialized = true;
             }
 
-            const userTechId = this.getTechIdFromEmail(this.state.currentUserEmail);
+            // Get the canonical Tech ID (will be null if not found in Users sheet)
+            const canonicalTechId = this.getTechIdFromEmail(this.state.currentUserEmail);
             
-            if (userTechId) {
-                const userInfo = this.state.users.find(u => u.techId === userTechId);
-                const displayName = userInfo ? userInfo.name : userTechId;
+            if (this.state.currentUserEmail) {
+                // Default to the email prefix for display if canonical ID is null
+                const emailPrefix = this.state.currentUserEmail.split('@')[0];
+                const userTechId = canonicalTechId || emailPrefix;
+                
+                const userInfo = this.state.users.find(u => u.techId === canonicalTechId);
+
+                // Use user name if available, otherwise use the derived email prefix for display
+                const displayName = userInfo ? userInfo.name : emailPrefix; 
+                
+                // Show a warning if the canonical ID is missing but sign-in succeeded
+                const statusSuffix = canonicalTechId ? 'Active' : 'Missing from Users List - Cannot Assign';
 
                 this.elements.loggedInUser.textContent = displayName;
-                this.elements.loggedInUserStatus.textContent = `ID: ${userTechId} - Status: Active`;
+                this.elements.loggedInUserStatus.textContent = `ID: ${userTechId} - Status: ${statusSuffix}`;
             } else {
                 // This case should ideally be caught in handleTokenResponse now, but kept for robustness
                 this.elements.loggedInUser.textContent = "User Not Found";
@@ -685,19 +697,20 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         // NEW FEATURE: Quick Assign Handler
         async handleQuickAssign(projectId) {
-            // Use the new helper to get the canonical Tech ID (e.g., 7236LE)
+            // Use the new helper to get the canonical Tech ID (e.g., 7236LE).
+            // It will be null if the user is not found in the Users list, preventing assignment.
             const techId = this.getTechIdFromEmail(this.state.currentUserEmail);
             if (!techId) {
-                alert("Could not retrieve your Tech ID for assignment. Please ensure you are fully signed in.");
+                alert("Could not retrieve your canonical Tech ID for assignment. Please ensure your Tech ID is listed in the 'Users' sheet.");
                 return;
             }
             
-            const finalTechId = techId;
+            const finalTechId = techId; // This is now guaranteed to be the canonical Tech ID
 
             if (confirm(`Assign this task to yourself (${finalTechId})?`)) {
                 const project = this.state.projects.find(p => p.id === projectId);
                 if (project) {
-                    // 1. Optimistically update local state BEFORE API call to instantly hide button
+                    // 1. Optimistically update local state BEFORE API call to instantly hide button/spinner
                     project.assignedTo = finalTechId;
                     this.filterAndRenderProjects();
                     
