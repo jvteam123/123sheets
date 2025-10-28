@@ -11,7 +11,10 @@ document.addEventListener('DOMContentLoaded', () => {
             cacheDuration: 5 * 60 * 1000, // 5 minutes in milliseconds
             sheetNames: { PROJECTS: "Projects", USERS: "Users", DISPUTES: "Disputes", EXTRAS: "Extras", ARCHIVE: "Archive", NOTIFICATIONS: "Notifications", BACKUP: "Backup" }, // Added BACKUP
             HEADER_MAP: { 'id': 'id', 'Fix Cat': 'fixCategory', 'Project Name': 'baseProjectName', 'Area/Task': 'areaTask', 'GSD': 'gsd', 'Assigned To': 'assignedTo', 'Status': 'status', 'Day 1 Start': 'startTimeDay1', 'Day 1 Finish': 'finishTimeDay1', 'Day 1 Break': 'breakDurationMinutesDay1', 'Day 2 Start': 'startTimeDay2', 'Day 2 Finish': 'finishTimeDay2', 'Day 2 Break': 'breakDurationMinutesDay2', 'Day 3 Start': 'startTimeDay3', 'Day 3 Finish': 'finishTimeDay3', 'Day 3 Break': 'breakDurationMinutesDay3', 'Day 4 Start': 'startTimeDay4', 'Day 4 Finish': 'finishTimeDay4', 'Day 4 Break': 'breakDurationMinutesDay4', 'Day 5 Start': 'startTimeDay5', 'Day 5 Finish': 'finishTimeDay5', 'Day 5 Break': 'breakDurationMinutesDay5', 'Total (min)': 'totalMinutes', 'Last Modified': 'lastModifiedTimestamp', 'Batch ID': 'batchId' },
-            USER_HEADER_MAP: { 'id': 'id', 'name': 'name', 'email': 'email', 'techId': 'techId' },
+            // CRITICAL FIX: Reversing mapping to match user's final sheet format:
+            // 'techId' (sheet header containing '7236LE') maps to 'techId' (the final assigned value)
+            // 'Employee Code' (sheet header containing 'ev.lorens.ebrado') maps to 'loginMatchKey'
+            USER_HEADER_MAP: { 'id': 'id', 'name': 'name', 'email': 'email', 'techId': 'techId', 'Employee Code': 'loginMatchKey' },
             DISPUTE_HEADER_MAP: { 'id': 'id', 'Block ID': 'blockId', 'Project Name': 'projectName', 'Partial': 'partial', 'Phase': 'phase', 'UID': 'uid', 'RQA TechID': 'rqaTechId', 'Reason for Dispute': 'reasonForDispute', 'Tech ID': 'techId', 'Tech Name': 'techName', 'Team': 'team', 'Type': 'type', 'Category': 'category', 'Status': 'status' },
             EXTRAS_HEADER_MAP: { 'id': 'id', 'name': 'name', 'url': 'url', 'icon': 'icon' },
             NOTIFICATIONS_HEADER_MAP: { 'id': 'id', 'message': 'message', 'projectName': 'projectName', 'timestamp': 'timestamp', 'read': 'read' },
@@ -132,15 +135,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.handleSignedOutUser();
             }
         },
-        // NEW Helper: Retrieves the canonical Tech ID from the Users list based on email prefix
+        // NEW Helper: Retrieves the canonical Tech ID (e.g., 7236LE) from the Users list
         getTechIdFromEmail(email) {
             if (!email) return null;
-            const techIdCandidate = email.split('@')[0];
-            // Perform case-insensitive search in the users list
-            const user = this.state.users.find(u => u.techId.toLowerCase() === techIdCandidate.toLowerCase());
+            const loginKey = email.split('@')[0].toLowerCase();
             
-            // CRITICAL FIX: Only return a TechID if a match is found in the Users list. 
-            // If the user's Tech ID isn't in the canonical Users list, they cannot quick assign.
+            // CRITICAL FIX: Search using the login key against the stored email prefix (loginMatchKey)
+            const user = this.state.users.find(u => u.loginMatchKey.toLowerCase() === loginKey);
+            
+            // Return the canonical Tech ID (e.g., 7236LE) found in the 'techId' property.
+            // If the user is not found, return null to prevent assignment
             return user ? user.techId : null; 
         },
         async handleAuthorizedUser() {
@@ -158,20 +162,21 @@ document.addEventListener('DOMContentLoaded', () => {
             const canonicalTechId = this.getTechIdFromEmail(this.state.currentUserEmail);
             
             if (this.state.currentUserEmail) {
-                // Default to the email prefix for display if canonical ID is null
+                // Default display key is the email prefix 
                 const emailPrefix = this.state.currentUserEmail.split('@')[0];
-                const userTechId = canonicalTechId || emailPrefix;
                 
+                // Find user info based on the canonical Tech ID (which is now in user.techId)
                 const userInfo = this.state.users.find(u => u.techId === canonicalTechId);
 
-                // Use user name if available, otherwise use the derived email prefix for display
+                // Determine what to display for the ID and Name
+                const displayId = canonicalTechId || emailPrefix; // Display canonical if found, else prefix
                 const displayName = userInfo ? userInfo.name : emailPrefix; 
                 
-                // Show a warning if the canonical ID is missing but sign-in succeeded
+                // Show status based on canonical ID availability
                 const statusSuffix = canonicalTechId ? 'Active' : 'Missing from Users List - Cannot Assign';
 
                 this.elements.loggedInUser.textContent = displayName;
-                this.elements.loggedInUserStatus.textContent = `ID: ${userTechId} - Status: ${statusSuffix}`;
+                this.elements.loggedInUserStatus.textContent = `ID: ${displayId} - Status: ${statusSuffix}`;
             } else {
                 // This case should ideally be caught in handleTokenResponse now, but kept for robustness
                 this.elements.loggedInUser.textContent = "User Not Found";
@@ -704,15 +709,14 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         // NEW FEATURE: Quick Assign Handler
         async handleQuickAssign(projectId) {
-            // Use the new helper to get the canonical Tech ID (e.g., 7236LE).
-            // It will be null if the user is not found in the Users list, preventing assignment.
+            // Get the canonical Tech ID (e.g., 7236LE).
             const techId = this.getTechIdFromEmail(this.state.currentUserEmail);
             if (!techId) {
                 alert("Could not retrieve your canonical Tech ID for assignment. Please ensure your Tech ID is listed in the 'Users' sheet.");
                 return;
             }
             
-            const finalTechId = techId; // This is now guaranteed to be the canonical Tech ID
+            const finalTechId = techId; // This is the canonical Tech ID (e.g., 7236LE)
 
             if (confirm(`Assign this task to yourself (${finalTechId})?`)) {
                 const project = this.state.projects.find(p => p.id === projectId);
@@ -924,12 +928,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!confirm(`DANGER: This will permanently delete all '${fixToDelete}' tasks for project '${this.formatProjectName(baseProjectName)}'. This cannot be undone. Continue?`)) return;
             this.showLoading(`Rolling back ${fixToDelete}...`);
             try {
-                const tasksToDelete = this.state.projects.filter(p => p.baseProjectName === baseProjectName && p.fixCategory === fixToDelete);
-                if (tasksToDelete.length === 0) {
+                const tasksToClone = this.state.projects.filter(p => p.baseProjectName === baseProjectName && p.fixCategory === fixToDelete);
+                if (tasksToClone.length === 0) {
                     throw new Error(`No tasks found to delete for ${fixToDelete}.`);
                 }
         
-                const rowNumbersToDelete = tasksToDelete.map(p => p._row);
+                const rowNumbersToDelete = tasksToClone.map(p => p._row);
                 await this.deleteSheetRows(this.config.sheetNames.PROJECTS, rowNumbersToDelete);
                 
                 // Update local state before refresh
@@ -954,8 +958,8 @@ document.addEventListener('DOMContentLoaded', () => {
             this.showLoading("Deleting project...");
             try {
                 const tasksToDelete = this.state.projects.filter(p => p.baseProjectName === baseProjectName);
-                if (tasksToDelete.length > 0) {
-                    const rowNumbersToDelete = tasksToDelete.map(p => p._row);
+                if (tasksToClone.length > 0) {
+                    const rowNumbersToDelete = tasksToClone.map(p => p._row);
                     await this.deleteSheetRows(this.config.sheetNames.PROJECTS, rowNumbersToDelete);
                     // Update local state before refresh
                     this.state.projects = this.state.projects.filter(p => p.baseProjectName !== baseProjectName);
@@ -1209,7 +1213,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const highestFixStages = {};
             for (const projectName in groupedByProject) {
-                const projectTasks = groupedByProject[projectName];
+                const projectTasks = groupedByGroup[projectName];
                 highestFixStages[projectName] = projectTasks.reduce((maxFix, task) => {
                     const currentFixNum = parseInt((task.fixCategory || 'Fix0').replace('Fix', ''), 10);
                     return Math.max(maxFix, currentFixNum);
@@ -1443,7 +1447,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.elements.userRow.value = user._row;
                 this.elements.userName.value = user.name;
                 this.elements.userEmail.value = user.email;
-                this.elements.userTechId.value = user.techId;
+                // Since the modal form still uses 'userTechId', we load the canonical ID here.
+                this.elements.userTechId.value = user.techId; 
             } else {
                 this.elements.userFormTitle.textContent = "Add User";
                 this.elements.userId.value = `user_${Date.now()}`;
@@ -1457,7 +1462,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 id: this.elements.userId.value,
                 name: this.elements.userName.value,
                 email: this.elements.userEmail.value,
-                techId: this.elements.userTechId.value,
+                // The canonical ID (e.g., 7236LE) is pulled from the form's userTechId input
+                techId: this.elements.userTechId.value, 
+                // The lookup key (email prefix) is derived from the email for writing back to the sheet
+                loginMatchKey: this.elements.userEmail.value.split('@')[0],
             };
             const rowIndex = this.elements.userRow.value;
 
@@ -1469,11 +1477,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     spreadsheetId: this.config.google.SPREADSHEET_ID, range: `${this.config.sheetNames.USERS}!1:1`,
                 });
                 const headers = getHeaders.result.values[0];
-                const newRow = [headers.map(h => {
-                    // Find the sheet header corresponding to the property name in the user object
-                    const propName = Object.keys(this.config.USER_HEADER_MAP).find(k => k.toLowerCase() === h.toLowerCase());
-                    return user[this.config.USER_HEADER_MAP[propName]] || "";
+                
+                // Manually create the row values based on the expected sheet headers
+                const newRow = [headers.map(header => {
+                    // Find the property name based on the header's expected mapping
+                    const headerKey = Object.keys(this.config.USER_HEADER_MAP).find(k => k.toLowerCase() === header.trim().toLowerCase());
+                    const propName = headerKey ? this.config.USER_HEADER_MAP[headerKey] : null;
+
+                    if (propName === 'techId') return user.techId; 
+                    if (propName === 'loginMatchKey') return user.loginMatchKey; 
+                    if (user[propName] !== undefined) return user[propName];
+                    return "";
                 })];
+                
                 await this.appendRowsToSheet(this.config.sheetNames.USERS, newRow);
             }
             this.elements.userFormModal.classList.remove('is-open');
@@ -2004,7 +2020,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     rowsToAppend.push(row);
                 });
         
-                await this.appendRowsToSheet(this.config.sheetNames.BACKUP, rowsToAppend);
+                await gapi.client.sheets.spreadsheets.values.append({
+                    spreadsheetId: this.config.google.SPREADSHEET_ID, range: `${this.config.sheetNames.BACKUP}!A1`,
+                    valueInputOption: 'USER_ENTERED', resource: { values: rowsToAppend }
+                });
         
                 alert(`Successfully backed up ${this.state.projects.length} projects to the "${this.config.sheetNames.BACKUP}" sheet.`);
         
