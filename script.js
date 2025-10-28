@@ -845,7 +845,9 @@ document.addEventListener('DOMContentLoaded', () => {
             this.showLoading(`Releasing ${fromFix} to ${toFix}...`);
             try {
                 const tasksToClone = this.state.projects.filter(p => p.baseProjectName === baseProjectName && p.fixCategory === fromFix);
-                if (tasksToClone.length === 0) throw new Error(`No tasks found for ${baseProjectName} in ${fromFix}.`);
+                if (tasksToClone.length === 0) {
+                    throw new Error(`No tasks found for ${fromFix}.`);
+                }
                 
                 const batchId = `batch_release_${Date.now()}`;
                 tasksToClone.forEach((task, index) => {
@@ -925,15 +927,15 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         },
         async handleRollback(baseProjectName, fixToDelete) {
-            if (!confirm(`DANGER: This will permanently delete all '${fixToDelete}' tasks for project '${this.formatProjectName(baseProjectName)}'. This cannot be undone. Continue?`)) return;
+            if (!confirm(`DANGER: This will permanently delete all '${fixToDelete}' tasks for project '${this.formatProjectName(baseProjectName)}'. This cannot be undone. Are you sure?`)) return;
             this.showLoading(`Rolling back ${fixToDelete}...`);
             try {
-                const tasksToClone = this.state.projects.filter(p => p.baseProjectName === baseProjectName && p.fixCategory === fixToDelete);
-                if (tasksToClone.length === 0) {
+                const tasksToDelete = this.state.projects.filter(p => p.baseProjectName === baseProjectName && p.fixCategory === fixToDelete);
+                if (tasksToDelete.length === 0) { // CORRECTED: Typo fixed from tasksToClone to tasksToDelete
                     throw new Error(`No tasks found to delete for ${fixToDelete}.`);
                 }
         
-                const rowNumbersToDelete = tasksToClone.map(p => p._row);
+                const rowNumbersToDelete = tasksToDelete.map(p => p._row);
                 await this.deleteSheetRows(this.config.sheetNames.PROJECTS, rowNumbersToDelete);
                 
                 // Update local state before refresh
@@ -1213,7 +1215,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const highestFixStages = {};
             for (const projectName in groupedByProject) {
-                const projectTasks = groupedByProject[projectName]; // CORRECTED: Changed 'groupedByGroup' to 'groupedByProject'
+                const projectTasks = groupedByProject[projectName];
                 highestFixStages[projectName] = projectTasks.reduce((maxFix, task) => {
                     const currentFixNum = parseInt((task.fixCategory || 'Fix0').replace('Fix', ''), 10);
                     return Math.max(maxFix, currentFixNum);
@@ -1946,8 +1948,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                 });
         
-                // 3. Append to Archive Sheet
-                await this.appendRowsToSheet(this.config.sheetNames.ARCHIVE, rowsToAppend);
+                await gapi.client.sheets.spreadsheets.values.append({
+                    spreadsheetId: this.config.google.SPREADSHEET_ID, range: `${this.config.sheetNames.ARCHIVE}!A1`,
+                    valueInputOption: 'USER_ENTERED', resource: { values: rowsToAppend }
+                });
                 
                 // 4. Delete rows from Projects sheet
                 const rowNumbersToDelete = projectsToArchive.map(p => p._row);
