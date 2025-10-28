@@ -958,8 +958,8 @@ document.addEventListener('DOMContentLoaded', () => {
             this.showLoading("Deleting project...");
             try {
                 const tasksToDelete = this.state.projects.filter(p => p.baseProjectName === baseProjectName);
-                if (tasksToClone.length > 0) {
-                    const rowNumbersToDelete = tasksToClone.map(p => p._row);
+                if (tasksToDelete.length > 0) {
+                    const rowNumbersToDelete = tasksToDelete.map(p => p._row);
                     await this.deleteSheetRows(this.config.sheetNames.PROJECTS, rowNumbersToDelete);
                     // Update local state before refresh
                     this.state.projects = this.state.projects.filter(p => p.baseProjectName !== baseProjectName);
