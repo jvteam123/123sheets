@@ -719,16 +719,31 @@ document.addEventListener('DOMContentLoaded', () => {
             const finalTechId = techId; // This is the canonical Tech ID (e.g., 7236LE)
 
             if (confirm(`Assign this task to yourself (${finalTechId})?`)) {
-                const project = this.state.projects.find(p => p.id === projectId);
-                if (project) {
-                    // CRITICAL FIX: Check if the project is ALREADY assigned to prevent overwrite
-                    if (project.assignedTo && project.assignedTo.trim() !== '') {
-                        alert("Error: This project is already assigned. Cannot overwrite.");
-                        return;
-                    }
+                
+                // CRITICAL FIX: Step 1 - Force a fresh reload of all project data 
+                // to check against the absolute current database state.
+                this.showLoading("Verifying assignment status...");
+                await this.loadDataFromSheets(true); 
+                this.hideLoading();
+                
+                // CRITICAL FIX: Step 2 - Re-find the project using the fresh state
+                const freshProject = this.state.projects.find(p => p.id === projectId);
 
+                if (!freshProject) {
+                     alert("Error: Project no longer exists in the database. Please refresh your dashboard.");
+                     return;
+                }
+                
+                // CRITICAL FIX: Step 3 - Check the fresh state for assignment
+                if (freshProject.assignedTo && freshProject.assignedTo.trim() !== '') {
+                    alert(`Error: This project was assigned to ${freshProject.assignedTo} by another user. Cannot overwrite.`);
+                    return;
+                }
+
+                // If the check passes, proceed with the assignment write
+                if (freshProject) {
                     // 1. Optimistically update local state BEFORE API call to instantly hide button/spinner
-                    project.assignedTo = finalTechId;
+                    freshProject.assignedTo = finalTechId;
                     this.filterAndRenderProjects();
                     
                     // 2. Perform asynchronous update to sheet (handleProjectUpdate handles the sheet logic)
@@ -805,7 +820,7 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         parseTimeToMinutes(timeStr) {
             if (!timeStr || typeof timeStr !== 'string') return 0;
-            const time = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
+            const time = timeStr.match(/(\d+):\d+\s*(AM|PM)/i);
             if (!time) {
                 const parts = timeStr.split(':');
                 if (parts.length !== 2) return 0;
@@ -901,9 +916,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 const lastAreaNumber = parseInt((latestTask.areaTask.match(/\d+$/) || ['0'])[0], 10);
                 const batchId = `batch_extra_${Date.now()}`;
         
-                for (let i = 1; i <= numToAdd; i++) {
+                for (let i = 1; i <= numRows; i++) {
                     const newAreaNumber = lastAreaNumber + i;
-                    const newRowObj = { ...latestTask, 
+                    const newRowObj = { 
+                        ...latestTask, 
                         id: `proj_${Date.now()}_${i}`, 
                         batchId, 
                         areaTask: `Area${String(newAreaNumber).padStart(2, '0')}`, 
