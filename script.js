@@ -1213,7 +1213,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const highestFixStages = {};
             for (const projectName in groupedByProject) {
-                const projectTasks = groupedByGroup[projectName];
+                const projectTasks = groupedByProject[projectName]; // CORRECTED: Changed 'groupedByGroup' to 'groupedByProject'
                 highestFixStages[projectName] = projectTasks.reduce((maxFix, task) => {
                     const currentFixNum = parseInt((task.fixCategory || 'Fix0').replace('Fix', ''), 10);
                     return Math.max(maxFix, currentFixNum);
