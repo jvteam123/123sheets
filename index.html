@@ -523,6 +523,14 @@
             border-color: var(--primary-color);
             box-shadow: 0 0 0 2px rgba(44, 62, 80, 0.1);
         }
+        .form-group input[type="number"] {
+            -moz-appearance: textfield; /* Firefox */
+        }
+        .form-group input::-webkit-outer-spin-button,
+        .form-group input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
         #newProjectForm .btn-success {
             grid-column: 1 / -1; /* Span across both columns */
             padding: 12px;
@@ -577,7 +585,6 @@
             <div class="sidebar-header">
                 <h2>Team123</h2>
                 <div id="loggedInUser"></div>
-                <!-- NEW: Element for User Status (e.g., Active/On Break) -->
                 <div id="loggedInUserStatus"></div> 
                  <div id="notificationBell">
                     <i class="fas fa-bell"></i>
@@ -845,7 +852,6 @@
         </div>
     </div>
 
-    <!-- ARCHIVE SELECTION MODAL (Kept from previous steps) -->
     <div id="archiveSelectModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -863,8 +869,7 @@
                     </select>
                 </div>
                 <div class="project-list" id="archiveProjectList">
-                    <!-- Checkboxes will be rendered here -->
-                </div>
+                    </div>
             </div>
             <div class="modal-footer" style="margin-top: 20px; display: flex; justify-content: space-between;">
                 <button id="archiveSelectAllBtn" class="btn btn-secondary">Select All</button>
@@ -964,7 +969,7 @@
                 <input type="text" id="userName" required>
                 <label for="userEmail">Email:</label>
                 <input type="email" id="userEmail">
-                <label for="userTechId">Tech ID:</label>
+                <label for="userTechId">Canonical Tech ID (for Projects, e.g., 7236LE):</label>
                 <input type="text" id="userTechId" required>
                 <button type="submit" class="btn btn-success">Save User</button>
             </form>
