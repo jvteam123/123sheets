@@ -721,6 +721,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (confirm(`Assign this task to yourself (${finalTechId})?`)) {
                 const project = this.state.projects.find(p => p.id === projectId);
                 if (project) {
+                    // CRITICAL FIX: Check if the project is ALREADY assigned to prevent overwrite
+                    if (project.assignedTo && project.assignedTo.trim() !== '') {
+                        alert("Error: This project is already assigned. Cannot overwrite.");
+                        return;
+                    }
+
                     // 1. Optimistically update local state BEFORE API call to instantly hide button/spinner
                     project.assignedTo = finalTechId;
                     this.filterAndRenderProjects();
@@ -897,8 +903,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
                 for (let i = 1; i <= numToAdd; i++) {
                     const newAreaNumber = lastAreaNumber + i;
-                    const newRowObj = { 
-                        ...latestTask, 
+                    const newRowObj = { ...latestTask, 
                         id: `proj_${Date.now()}_${i}`, 
                         batchId, 
                         areaTask: `Area${String(newAreaNumber).padStart(2, '0')}`, 
@@ -931,7 +936,7 @@ document.addEventListener('DOMContentLoaded', () => {
             this.showLoading(`Rolling back ${fixToDelete}...`);
             try {
                 const tasksToDelete = this.state.projects.filter(p => p.baseProjectName === baseProjectName && p.fixCategory === fixToDelete);
-                if (tasksToDelete.length === 0) { // CORRECTED: Typo fixed from tasksToClone to tasksToDelete
+                if (tasksToDelete.length === 0) {
                     throw new Error(`No tasks found to delete for ${fixToDelete}.`);
                 }
         
@@ -1449,8 +1454,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.elements.userRow.value = user._row;
                 this.elements.userName.value = user.name;
                 this.elements.userEmail.value = user.email;
-                // Since the modal form still uses 'userTechId', we load the canonical ID here.
-                this.elements.userTechId.value = user.techId; 
+                this.elements.userTechId.value = user.techId;
             } else {
                 this.elements.userFormTitle.textContent = "Add User";
                 this.elements.userId.value = `user_${Date.now()}`;
@@ -1464,8 +1468,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 id: this.elements.userId.value,
                 name: this.elements.userName.value,
                 email: this.elements.userEmail.value,
-                // The canonical ID (e.g., 7236LE) is pulled from the form's userTechId input
-                techId: this.elements.userTechId.value, 
+                techId: this.elements.userTechId.value,
                 // The lookup key (email prefix) is derived from the email for writing back to the sheet
                 loginMatchKey: this.elements.userEmail.value.split('@')[0],
             };
@@ -1948,10 +1951,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                 });
         
-                await gapi.client.sheets.spreadsheets.values.append({
-                    spreadsheetId: this.config.google.SPREADSHEET_ID, range: `${this.config.sheetNames.ARCHIVE}!A1`,
-                    valueInputOption: 'USER_ENTERED', resource: { values: rowsToAppend }
-                });
+                // 3. Append to Archive Sheet
+                await this.appendRowsToSheet(this.config.sheetNames.ARCHIVE, rowsToAppend);
                 
                 // 4. Delete rows from Projects sheet
                 const rowNumbersToDelete = projectsToArchive.map(p => p._row);
@@ -2024,10 +2025,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     rowsToAppend.push(row);
                 });
         
-                await gapi.client.sheets.spreadsheets.values.append({
-                    spreadsheetId: this.config.google.SPREADSHEET_ID, range: `${this.config.sheetNames.BACKUP}!A1`,
-                    valueInputOption: 'USER_ENTERED', resource: { values: rowsToAppend }
-                });
+                await this.appendRowsToSheet(this.config.sheetNames.BACKUP, rowsToAppend);
         
                 alert(`Successfully backed up ${this.state.projects.length} projects to the "${this.config.sheetNames.BACKUP}" sheet.`);
         
@@ -2053,8 +2051,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const startTimeStr = project[`startTimeDay${day}`] || '';
             const finishTimeStr = project[`finishTimeDay${day}`] || '';
         
-            const startTimeMatch = startTimeStr.match(/(\d+:\d+)\s*(AM|PM)/i);
-            const finishTimeMatch = finishTimeStr.match(/(\d+:\d+)\s*(AM|PM)/i);
+            const startTimeMatch = startTimeStr.match(/(\d+):\d+\s*(AM|PM)/i);
+            const finishTimeMatch = finishTimeStr.match(/(\d+):\d+\s*(AM|PM)/i);
         
             this.elements.editStartTime.value = startTimeMatch ? startTimeMatch[1] : startTimeStr;
             this.elements.editStartTimeAmPm.value = startTimeMatch ? startTimeMatch[2].toUpperCase() : 'AM';
