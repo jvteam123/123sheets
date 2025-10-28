@@ -208,7 +208,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const headers = values[0];
             return values.slice(1).map((row, index) => {
                 let obj = { _row: index + 2 };
-                headers.forEach((header, i) => { const propName = headerMap[header.trim()]; if (propName) obj[propName] = row[i] || ""; });
+                headers.forEach((header, i) => {
+                    // Find the key in the expected header map (e.g., 'techId') that matches the sheet header (e.g., 'TechId') case-insensitively
+                    const headerKey = Object.keys(headerMap).find(key => key.toLowerCase() === header.trim().toLowerCase());
+                    if (headerKey) {
+                        const propName = headerMap[headerKey];
+                        obj[propName] = row[i] || "";
+                    }
+                });
                 return obj;
             });
         },
