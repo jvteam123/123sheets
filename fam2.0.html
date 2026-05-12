@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIMALA TO BADIAN OUTING | Operational Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .stepper-line { position: absolute; left: 1.25rem; top: 2.5rem; bottom: 0; width: 2px; background: #e2e8f0; z-index: 0; }
+        .pulse { animation: pulse-animation 2s infinite; }
+        @keyframes pulse-animation { 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); } 70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); } 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); } }
+        .recipe-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; }
+        .recipe-active .recipe-content { max-height: 1000px; transition: max-height 0.5s ease-in; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    </style>
+</head>
+<body class="pb-12">
+
+    <!-- Header Section -->
+    <header class="bg-slate-900 text-white sticky top-0 z-50 shadow-xl">
+        <div class="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-3 h-3 bg-green-500 rounded-full pulse"></div>
+                <div>
+                    <h1 class="text-xl font-800 tracking-tight">SIMALA TO BADIAN OUTING</h1>
+                    <p class="text-xs text-slate-400 font-semibold tracking-widest uppercase">Mission Control • Ver 2.0</p>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <div class="bg-slate-800 px-3 py-1 rounded border border-slate-700 text-center">
+                    <span class="block text-[10px] text-slate-400 uppercase">Headcount</span>
+                    <span class="font-bold text-sm">15 PAX</span>
+                </div>
+                <div class="bg-indigo-900/40 px-3 py-1 rounded border border-indigo-500/30 text-center">
+                    <span class="block text-[10px] text-indigo-300 uppercase">Status</span>
+                    <span class="font-bold text-sm text-indigo-200">ACTIVE</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 space-y-12">
+
+        <!-- Metrics Grid -->
+        <section class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                <span class="text-slate-400 text-xs font-bold uppercase block mb-1">Primary Goal</span>
+                <span class="text-slate-900 font-bold">Badian Shoreline Feast</span>
+            </div>
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                <span class="text-slate-400 text-xs font-bold uppercase block mb-1">Logistics Stop</span>
+                <span class="text-slate-900 font-bold">Carcar & Badian Markets</span>
+            </div>
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                <span class="text-slate-400 text-xs font-bold uppercase block mb-1">Cuisine</span>
+                <span class="text-slate-900 font-bold">Cebuano Heritage</span>
+            </div>
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                <span class="text-slate-400 text-xs font-bold uppercase block mb-1">Base Camp</span>
+                <span class="text-slate-900 font-bold">Grandeur Beach Resort</span>
+            </div>
+        </section>
+
+        <!-- Timeline & Recipes Layout -->
+        <div class="grid lg:grid-cols-12 gap-8">
+            
+            <!-- Timeline (Left Column) -->
+            <div class="lg:col-span-4 space-y-6">
+                <h2 class="text-slate-900 font-800 text-lg flex items-center gap-2">
+                    <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    OPERATIONAL TIMELINE
+                </h2>
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 relative">
+                    <div class="stepper-line"></div>
+                    
+                    <div class="space-y-8">
+                        <!-- Step 1 -->
+                        <div class="relative flex gap-6 items-start">
+                            <div class="z-10 w-10 h-10 rounded-full bg-slate-900 border-4 border-white shadow-md flex items-center justify-center text-white text-xs font-bold">06</div>
+                            <div>
+                                <h4 class="font-bold text-slate-900">06:00 AM | Departure</h4>
+                                <p class="text-sm text-slate-500">Transit from Pickup Point.</p>
+                            </div>
+                        </div>
+
+                        <!-- Step 2 -->
+                        <div class="relative flex gap-6 items-start">
+                            <div class="z-10 w-10 h-10 rounded-full bg-slate-900 border-4 border-white shadow-md flex items-center justify-center text-white text-xs font-bold">07</div>
+                            <div>
+                                <h4 class="font-bold text-slate-900">07:00 AM | Carcar Logistics</h4>
+                                <p class="text-sm text-slate-500">Lechon breakfast & lunch procurement.</p>
+                            </div>
+                        </div>
+
+                        <!-- Step 3 -->
+                        <div class="relative flex gap-6 items-start">
+                            <div class="z-10 w-10 h-10 rounded-full bg-indigo-600 border-4 border-white shadow-md flex items-center justify-center text-white text-xs font-bold italic">S</div>
+                            <div>
+                                <h4 class="font-bold text-slate-900">08:30 AM | Simala Shrine</h4>
+                                <p class="text-sm text-slate-500">Sibonga, Cebu.</p>
+                                <div class="mt-2 text-[10px] bg-red-50 text-red-700 px-2 py-1 rounded font-bold border border-red-100 inline-block">MODEST DRESS CODE REQUIRED</div>
+                            </div>
+                        </div>
+
+                        <!-- Step 4 -->
+                        <div class="relative flex gap-6 items-start">
+                            <div class="z-10 w-10 h-10 rounded-full bg-slate-900 border-4 border-white shadow-md flex items-center justify-center text-white text-xs font-bold">01</div>
+                            <div>
+                                <h4 class="font-bold text-slate-900">01:30 PM | Badian Market</h4>
+                                <p class="text-sm text-slate-500">Final procurement for 15-pax feast.</p>
+                            </div>
+                        </div>
+
+                        <!-- Step 5 -->
+                        <div class="relative flex gap-6 items-start">
+                            <div class="z-10 w-10 h-10 rounded-full bg-slate-900 border-4 border-white shadow-md flex items-center justify-center text-white text-xs font-bold">03</div>
+                            <div>
+                                <h4 class="font-bold text-slate-900">03:30 PM | Prep & Marination</h4>
+                                <p class="text-sm text-slate-500">Basing at Grandeur Beach Resort.</p>
+                            </div>
+                        </div>
+
+                        <!-- Step 6 -->
+                        <div class="relative flex gap-6 items-start">
+                            <div class="z-10 w-10 h-10 rounded-full bg-green-600 border-4 border-white shadow-md flex items-center justify-center text-white text-xs font-bold">06</div>
+                            <div>
+                                <h4 class="font-bold text-slate-900">06:00 PM | Group Dinner</h4>
+                                <p class="text-sm text-slate-500">Shoreline buffet setup.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recipe Grid (Right Column) -->
+            <div class="lg:col-span-8 space-y-6">
+                <h2 class="text-slate-900 font-800 text-lg flex items-center gap-2">
+                    <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                    CULINARY PROCUREMENT & PROTOCOLS
+                </h2>
+                
+                <div class="grid md:grid-cols-2 gap-4">
+                    <!-- Recipe 1: Buttered Seafood -->
+                    <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm hover:border-indigo-300 transition-colors" id="recipe-seafood">
+                        <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                            <div>
+                                <h3 class="font-800 text-slate-900 uppercase text-sm tracking-wide">Buttered Seafood</h3>
+                                <p class="text-[10px] font-bold text-indigo-600">SECTOR 01 • 3.0 KG MIXED</p>
+                            </div>
+                            <input type="checkbox" class="w-5 h-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                        </div>
+                        <div class="p-5">
+                            <ul class="text-xs space-y-2 mb-4 text-slate-600">
+                                <li class="flex items-center gap-2"><span>•</span> 1kg Shrimp, 1kg Crab, 1kg Mussels</li>
+                                <li class="flex items-center gap-2"><span>•</span> 2 Blocks Butter + 3 Heads Garlic</li>
+                                <li class="flex items-center gap-2"><span>•</span> 1L Sprite + Oyster Sauce</li>
+                            </ul>
+                            <button onclick="toggleRecipe('recipe-seafood')" class="w-full py-2 bg-slate-900 text-white text-[10px] font-bold rounded uppercase tracking-widest hover:bg-indigo-600 transition-colors">View Prep Protocol</button>
+                            <div class="recipe-content mt-4 text-xs text-slate-600 space-y-3 pt-3 border-t border-dashed border-slate-200">
+                                <p><strong>Method:</strong> Melt butter and sauté garlic/ginger. Steam crab/mussels in Sprite for 8m. Add shrimp and remaining butter. Reduce until liquid forms a thick glaze.</p>
+                                <p class="bg-indigo-50 p-2 rounded text-[10px] italic">"Toss frequently to ensure even coating."</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recipe 2: Sweet & Sour Chicken -->
+                    <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm hover:border-indigo-300 transition-colors" id="recipe-chicken-ss">
+                        <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                            <div>
+                                <h3 class="font-800 text-slate-900 uppercase text-sm tracking-wide">Sweet & Sour Chicken</h3>
+                                <p class="text-[10px] font-bold text-orange-600">SECTOR 02 • 2.0 KG CUTS</p>
+                            </div>
+                            <input type="checkbox" class="w-5 h-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                        </div>
+                        <div class="p-5">
+                            <ul class="text-xs space-y-2 mb-4 text-slate-600">
+                                <li class="flex items-center gap-2"><span>•</span> 2kg Thigh/Breast cubes</li>
+                                <li class="flex items-center gap-2"><span>•</span> Bell Peppers, Carrots, Pineapple</li>
+                                <li class="flex items-center gap-2"><span>•</span> Banana Ketchup, Vinegar, Sugar</li>
+                            </ul>
+                            <button onclick="toggleRecipe('recipe-chicken-ss')" class="w-full py-2 bg-slate-900 text-white text-[10px] font-bold rounded uppercase tracking-widest hover:bg-indigo-600 transition-colors">View Prep Protocol</button>
+                            <div class="recipe-content mt-4 text-xs text-slate-600 space-y-3 pt-3 border-t border-dashed border-slate-200">
+                                <p><strong>Method:</strong> Dredge chicken in cornstarch/flour and deep fry. Sauté veggies separately. Simmer ketchup, vinegar, and pineapple juice. Thicken with slurry, then toss in chicken.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recipe 3: Grilled Liempo -->
+                    <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm hover:border-indigo-300 transition-colors" id="recipe-liempo">
+                        <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                            <div>
+                                <h3 class="font-800 text-slate-900 uppercase text-sm tracking-wide">Grilled Liempo</h3>
+                                <p class="text-[10px] font-bold text-red-600">SECTOR 03 • 3.0 KG SLABS</p>
+                            </div>
+                            <input type="checkbox" class="w-5 h-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                        </div>
+                        <div class="p-5">
+                            <ul class="text-xs space-y-2 mb-4 text-slate-600">
+                                <li class="flex items-center gap-2"><span>•</span> 3kg Pork Belly (1-inch thick)</li>
+                                <li class="flex items-center gap-2"><span>•</span> Calamansi, Soy Sauce, Garlic</li>
+                                <li class="flex items-center gap-2"><span>•</span> Brown Sugar, Sprite, Pepper</li>
+                            </ul>
+                            <button onclick="toggleRecipe('recipe-liempo')" class="w-full py-2 bg-slate-900 text-white text-[10px] font-bold rounded uppercase tracking-widest hover:bg-indigo-600 transition-colors">View Prep Protocol</button>
+                            <div class="recipe-content mt-4 text-xs text-slate-600 space-y-3 pt-3 border-t border-dashed border-slate-200">
+                                <p><strong>Method:</strong> Submerge pork in citrus-soy-sprite mix for 3.5 hours. Grill over medium-hot charcoal, basting every flip until caramelized.</p>
+                                <p class="bg-red-50 p-2 rounded text-[10px] italic text-red-700 font-bold uppercase">Pro-Tip: Start Marinating at 2:30 PM SHARP.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recipe 4: Chicken Halang-Halang -->
+                    <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm hover:border-indigo-300 transition-colors" id="recipe-halang">
+                        <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                            <div>
+                                <h3 class="font-800 text-slate-900 uppercase text-sm tracking-wide">Chicken Halang-Halang</h3>
+                                <p class="text-[10px] font-bold text-green-600">SECTOR 04 • 2.0 KG SPICY</p>
+                            </div>
+                            <input type="checkbox" class="w-5 h-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                        </div>
+                        <div class="p-5">
+                            <ul class="text-xs space-y-2 mb-4 text-slate-600">
+                                <li class="flex items-center gap-2"><span>•</span> 2kg Chicken serving pieces</li>
+                                <li class="flex items-center gap-2"><span>•</span> Coconut Milk (Thick & Thin)</li>
+                                <li class="flex items-center gap-2"><span>•</span> Lemongrass, Ginger, Labuyo</li>
+                            </ul>
+                            <button onclick="toggleRecipe('recipe-halang')" class="w-full py-2 bg-slate-900 text-white text-[10px] font-bold rounded uppercase tracking-widest hover:bg-indigo-600 transition-colors">View Prep Protocol</button>
+                            <div class="recipe-content mt-4 text-xs text-slate-600 space-y-3 pt-3 border-t border-dashed border-slate-200">
+                                <p><strong>Method:</strong> Sauté heavy ginger and lemongrass. Sear chicken with patis. Simmer in thin milk until tender. Enrich with thick cream and chilies last.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Logistics Footer Card -->
+                <div class="bg-indigo-900 text-indigo-100 p-6 rounded-2xl shadow-lg relative overflow-hidden">
+                    <div class="absolute right-0 top-0 opacity-10 transform translate-x-1/4 -translate-y-1/4">
+                        <svg class="w-48 h-48" fill="currentColor" viewBox="0 0 20 20"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3.005 3.005 0 013.75-2.906z"></path></svg>
+                    </div>
+                    <div class="relative z-10">
+                        <h4 class="font-bold text-sm uppercase tracking-widest mb-2">Market Logistics Checklist</h4>
+                        <div class="grid grid-cols-2 gap-4 text-xs">
+                            <div>
+                                <p class="text-indigo-300 font-bold mb-1">PRODUCE</p>
+                                <ul class="opacity-80">
+                                    <li>• 1kg Ginger / 5 Heads Garlic</li>
+                                    <li>• Onions / Bell Peppers</li>
+                                    <li>• Lemongrass / Labuyo Sili</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <p class="text-indigo-300 font-bold mb-1">PANTRY</p>
+                                <ul class="opacity-80">
+                                    <li>• 2 Blocks Butter</li>
+                                    <li>• Sprite / Vinegar / Soy Sauce</li>
+                                    <li>• Banana Ketchup / Sugar</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <script>
+        function toggleRecipe(id) {
+            const el = document.getElementById(id);
+            el.classList.toggle('recipe-active');
+            
+            const btn = el.querySelector('button');
+            if (el.classList.contains('recipe-active')) {
+                btn.innerText = 'Hide Prep Protocol';
+                btn.classList.replace('bg-slate-900', 'bg-indigo-700');
+            } else {
+                btn.innerText = 'View Prep Protocol';
+                btn.classList.replace('bg-indigo-700', 'bg-slate-900');
+            }
+        }
+    </script>
+</body>
+</html>
